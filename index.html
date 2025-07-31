@@ -62,6 +62,8 @@
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
+  // import { createLabel, createCamera, createSlider, createBlochSphereLights } from './utils.js';
+
   // === DOM References ===
   const grid = document.getElementById("qubitGrid");
   const entangleToggle = document.getElementById("entangleToggle");
@@ -188,26 +190,35 @@ function createSlider({ min, max, step, value }) {
 }
 
 
-
+/**
+ * Centers and aligns the entanglement info box to match the horizontal span
+ * of the Bloch sphere canvases. Ensures it is positioned above them and spans
+ * from the first to the last Bloch sphere.
+ */
 function centerEntangleInfoBox() {
   const infoBox = document.getElementById("entangleInfoBox");
   const wrappers = document.querySelectorAll(".canvasWrapper");
-  if (wrappers.length === 0) return;
+
+  if (!infoBox || wrappers.length === 0) return;
 
   // Get bounding boxes of the first and last Bloch sphere containers
-  const first = wrappers[0].getBoundingClientRect();
-  const last = wrappers[wrappers.length - 1].getBoundingClientRect();
+  const firstRect = wrappers[0].getBoundingClientRect();
+  const lastRect = wrappers[wrappers.length - 1].getBoundingClientRect();
 
-  // Set left aligned with first Bloch sphere, width spans to the last
-  infoBox.style.left = `${first.left}px`;
-  infoBox.style.width = `${last.right - first.left}px`;
+  // Align the left edge with the first canvas
+  infoBox.style.left = `${firstRect.left}px`;
 
-  // Set top aligned with top of the Bloch sphere containers (relative to viewport)
-  infoBox.style.top = `${first.top}px`;
+  // Set the width to span from the first to the last canvas
+  const totalWidth = lastRect.right - firstRect.left;
+  infoBox.style.width = `${totalWidth}px`;
 
-  // Optional: update position relative to scroll
+  // Align the top edge with the top of the canvases
+  infoBox.style.top = `${firstRect.top}px`;
+
+  // Make sure the positioning mode is absolute (in viewport coordinates)
   infoBox.style.position = "absolute";
 }
+
 
 
 
@@ -309,12 +320,6 @@ container.appendChild(controlRow);  // Add to main container
 
 // Finally add the whole qubit column to the grid
 grid.appendChild(container);
-
-
-
-
-
-
 
 
     const scene = new THREE.Scene();
