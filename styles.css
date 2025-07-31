@@ -2,10 +2,9 @@
 :root {
   --primary-bg-color: #202020;
   --primary-text-color: #ffffff;
-  --chart-bg-color: rgba(0, 128, 255, 0.1);
+  --chart-bg-color: #202020;
   --chart-text-color: #ffffff;
-  --highlight-color: #66ffff;
-  --canvas-bg-color: #111133;
+  --highlight-color: #ff1493;
   --primary-button-gradient: linear-gradient(135deg, #6a11cb, #2575fc);
 }
 

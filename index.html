@@ -79,7 +79,7 @@
   let qubitOrigins = [];         // TODO: Add comment. 
 
 
-
+// TODO: Use this function somewhere.
 /**
  * Resize the Three.js renderer canvas to fit within the available space
  * of its container, considering the space taken up by the chart and control rows.
@@ -126,30 +126,57 @@ function createLabel(text) {
 }
 
 
+/**
+ * Adds ambient, directional, and hemisphere lights to a Three.js scene
+ * to illuminate the Bloch sphere effectively.
+ * @param {THREE.Scene} scene - The scene to which the lights will be added.
+ */
 function createBlochSphereLights(scene) {
-  // Ambient light
+  // Soft overall lighting
   const ambient = new THREE.AmbientLight(0x404040, 1.4);
   scene.add(ambient);
 
-  // Directional light
+  // Strong directional light to create shadows and depth
   const light = new THREE.DirectionalLight(0xffffff, 2);
   light.position.set(3, 2, 5);
   scene.add(light);
 
-  // Hemisphere light
+  // Adds gradient lighting to enhance spherical shape
   const hemiLight = new THREE.HemisphereLight(0xffe0f0, 0x202040, 1.2);
   scene.add(hemiLight);
 }
 
+
+
+/**
+ * Creates a perspective camera.
+ * @returns {THREE.PerspectiveCamera} - A configured Three.js camera.
+ */
 function createCamera() {
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+
+  // Positioned diagonally from above
   camera.position.set(2.5, -2.5, 0.5);
+
+  // Z-axis points upward for Bloch spheres
   camera.up.set(0, 0, 1);
+
+  // Center view at origin
   camera.lookAt(0, 0, 0);
+
   return camera;
 }
 
 
+/**
+ * Creates an input slider element with the given configuration.
+ * @param {Object} config - Slider configuration parameters.
+ * @param {string|number} config.min - Minimum value.
+ * @param {string|number} config.max - Maximum value.
+ * @param {string|number} config.step - Step size.
+ * @param {string|number} config.value - Initial value.
+ * @returns {HTMLInputElement} - A configured range input element.
+ */
 function createSlider({ min, max, step, value }) {
   const slider = document.createElement("input");
   slider.type = "range";
@@ -159,6 +186,8 @@ function createSlider({ min, max, step, value }) {
   slider.value = value;
   return slider;
 }
+
+
 
 function centerEntangleInfoBox() {
   const infoBox = document.getElementById("entangleInfoBox");
@@ -296,7 +325,7 @@ grid.appendChild(container);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(canvas.clientWidth, canvas.clientWidth);
-    renderer.setClearColor(0x00ffff);
+    renderer.setClearColor(0x000000, 0); // black, fully transparent
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -801,16 +830,6 @@ const probs = Object.values(entangledStates).map(p => Math.sqrt(p));
   if (!infoBox) {
     infoBox = document.createElement("div");
     infoBox.id = "entangleInfoBox";
-    infoBox.style.position = "absolute";
-    infoBox.style.top = "60px";
-    infoBox.style.left = "0";
-    infoBox.style.width = "100%";
-    infoBox.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-    infoBox.style.color = "#fff";
-    infoBox.style.padding = "10px 20px";
-    infoBox.style.zIndex = "1000";
-    infoBox.style.textAlign = "center";
-    infoBox.style.fontSize = "1em";
     document.body.appendChild(infoBox);
   } else {
     infoBox.style.display = "block";
@@ -820,8 +839,6 @@ infoBox.innerHTML = `
   The multi-qubit system is now in the maximally entangled state:<br>${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩.<br>  
   Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are not well defined. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
   `;
-
-
 
     // Visualize connections
     const canvases = Array.from(document.getElementsByClassName('qubitCanvas'));
