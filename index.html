@@ -195,28 +195,61 @@ function createSlider({ min, max, step, value }) {
  * of the Bloch sphere canvases. Ensures it is positioned above them and spans
  * from the first to the last Bloch sphere.
  */
+// function centerEntangleInfoBox() {
+//   const infoBox = document.getElementById("entangleInfoBox");
+//   const wrappers = document.querySelectorAll(".canvasWrapper");
+
+//   if (!infoBox || wrappers.length === 0) return;
+
+//   // Get bounding boxes of the first and last Bloch sphere containers
+//   const firstRect = wrappers[0].getBoundingClientRect();
+//   const lastRect = wrappers[wrappers.length - 1].getBoundingClientRect();
+
+//   // Align the left edge with the first canvas
+//   infoBox.style.left = `${firstRect.left}px`;
+
+//   // Set the width to span from the first to the last canvas
+//   const totalWidth = lastRect.right - firstRect.left;
+//   infoBox.style.width = `${totalWidth}px`;
+
+//   // Align the top edge with the top of the canvases
+//   infoBox.style.top = `${firstRect.top}px`;
+
+//   // Make sure the positioning mode is absolute (in viewport coordinates)
+//   infoBox.style.position = "absolute";
+// }
+
+
+/**
+ * Expands and positions the entanglement info box to fully cover the area
+ * spanned by the Bloch sphere canvases (from first to last, top to bottom).
+ */
 function centerEntangleInfoBox() {
   const infoBox = document.getElementById("entangleInfoBox");
   const wrappers = document.querySelectorAll(".canvasWrapper");
 
   if (!infoBox || wrappers.length === 0) return;
 
-  // Get bounding boxes of the first and last Bloch sphere containers
+  // Get bounding boxes of the first and last Bloch spheres
   const firstRect = wrappers[0].getBoundingClientRect();
   const lastRect = wrappers[wrappers.length - 1].getBoundingClientRect();
 
-  // Align the left edge with the first canvas
-  infoBox.style.left = `${firstRect.left}px`;
+  // Compute top-left corner
+  const left = firstRect.left;
+  const top = Math.min(firstRect.top, lastRect.top);
 
-  // Set the width to span from the first to the last canvas
-  const totalWidth = lastRect.right - firstRect.left;
-  infoBox.style.width = `${totalWidth}px`;
+  // Compute full width and height
+  const right = lastRect.right;
+  const bottom = Math.max(firstRect.bottom, lastRect.bottom);
+  const width = right - left;
+  const height = bottom - top;
 
-  // Align the top edge with the top of the canvases
-  infoBox.style.top = `${firstRect.top}px`;
-
-  // Make sure the positioning mode is absolute (in viewport coordinates)
+  // Apply position and size
   infoBox.style.position = "absolute";
+  infoBox.style.left = `${left}px`;
+  infoBox.style.top = `${top}px`;
+  infoBox.style.width = `${width}px`;
+  infoBox.style.height = `${height}px`;
 }
 
 
