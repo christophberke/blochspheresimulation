@@ -250,6 +250,7 @@ function centerEntangleInfoBox() {
   infoBox.style.top = `${top}px`;
   infoBox.style.width = `${width}px`;
   infoBox.style.height = `${height}px`;
+
 }
 
 
@@ -418,7 +419,18 @@ grid.appendChild(container);
             stepsize: 0.5,
             display: true,
             color: 'white',
-        }
+        },
+        // Add conditional title.
+        title: i === 0 ? {
+          display: true,
+          text: 'Probability',
+          color: 'white',
+          font: {
+            size: 18,
+            // weight: 'bold',
+          }
+        } : undefined
+        // End conditional title
           },
           x: {
             grid: {
@@ -874,8 +886,9 @@ const probs = Object.values(entangledStates).map(p => Math.sqrt(p));
   }
 // infoBox.textContent = `entangled State: ${probs[0].toFixed(3)}|${states[0]}⟩ + ${probs[1].toFixed(3)}|${states[1]}⟩`;
 infoBox.innerHTML = `
-  The multi-qubit system is now in the maximally entangled state:<br>${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩.<br>  
-  Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are not well defined. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
+  <div class = "entangleText">
+  The multi-qubit system is now in the <b>maximally entangled</b> state ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are <b>not well defined</b>. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
+  </div>
   `;
 
     // Visualize connections
