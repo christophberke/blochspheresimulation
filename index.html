@@ -265,6 +265,10 @@ function centerEntangleInfoBox() {
   }
 
 
+const TextColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
+const BGColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
+
+
   qubitArrows = [];
 
   grid.innerHTML = '';
@@ -406,10 +410,11 @@ grid.appendChild(container);
           },
           border: {
             display: true,
-            color: 'white',          // Axis border color
+            color: TextColor,          // Axis border color
             width: 1
           },
             ticks: {
+            color: TextColor,
             font: {
               size: 18
             },
@@ -418,13 +423,13 @@ grid.appendChild(container);
                   },
             stepsize: 0.5,
             display: true,
-            color: 'white',
+            color: TextColor,
         },
         // Add conditional title.
         title: i === 0 ? {
           display: true,
           text: 'Probability',
-          color: 'white',
+          color: TextColor,
           font: {
             size: 18,
             // weight: 'bold',
@@ -439,14 +444,14 @@ grid.appendChild(container);
           },
           border: {
             display: true,
-            color: 'white',          // Axis border color
+            color: TextColor,          // Axis border color
             width: 1
           },
       ticks: {
         font: {
               size: 18
             },
-        color: 'white'  // X-axis tick label color
+        color: TextColor  // X-axis tick label color
       }
           }
         },
@@ -669,10 +674,6 @@ jointCanvas.style.height = "auto";
 jointContainer.appendChild(jointCanvas);
 grid.appendChild(jointContainer);
 
-
-const TextColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
-const BGColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
-
 const ctx = jointCanvas.getContext("2d");
 jointChart = new Chart(ctx, {
   type: 'bar',
@@ -721,7 +722,7 @@ jointChart = new Chart(ctx, {
       },
       border: {
         display: true,
-        color: 'white',
+        color: TextColor,
         width: 1
       },
       ticks: {
