@@ -114,17 +114,44 @@ function resizeSceneCanvas(canvas, renderer) {
 
 
 
+// function createLabel(text) {
+//   const div = document.createElement('div');
+//   div.className = 'label';
+//   div.textContent = text;
+//   div.style.color = 'white';
+//   div.style.fontSize = '1.2em';
+//   div.style.fontWeight = 'bold';
+//   div.style.textShadow = '0 0 5px black';
+
+//   const label = new CSS2DObject(div);
+//   return label;
+// }
+
 function createLabel(text) {
   const div = document.createElement('div');
   div.className = 'label';
   div.textContent = text;
-  div.style.color = 'white';
-  div.style.fontSize = '1.2em';
+  div.style.color = 'red';
+  div.style.fontSize = '18px';
   div.style.fontWeight = 'bold';
   div.style.textShadow = '0 0 5px black';
+  div.style.textAlign = 'center';
 
-  const label = new CSS2DObject(div);
-  return label;
+  return new CSS2DObject(div);
+}
+
+
+
+function addPoleLabels(sphere) {
+  // Create north pole label "0"
+  const label0 = createLabel('0');
+  label0.position.set(0, 0, 0.8);  // Slightly above the north pole
+  sphere.add(label0);
+
+  // Create south pole label "1"
+  const label1 = createLabel('1');
+  label1.position.set(0, 0, -1.05); // Slightly below the south pole
+  sphere.add(label1);
 }
 
 
@@ -267,6 +294,10 @@ function centerEntangleInfoBox() {
 
 const TextColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
 const BGColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
+
+const TickFontSize = 20;
+const LabelFontsize = 24;
+const TitleFontsize = 24;
 
 
   qubitArrows = [];
@@ -416,7 +447,7 @@ grid.appendChild(container);
             ticks: {
             color: TextColor,
             font: {
-              size: 18
+              size: TickFontSize
             },
           callback: function(value) {
                     return [0, 0.5, 1].includes(value) ? value : '';
@@ -431,8 +462,8 @@ grid.appendChild(container);
           text: 'Probability',
           color: TextColor,
           font: {
-            size: 18,
-            // weight: 'bold',
+            size: LabelFontsize,
+            weight: 'light',
           }
         } : undefined
         // End conditional title
@@ -449,7 +480,7 @@ grid.appendChild(container);
           },
       ticks: {
         font: {
-              size: 18
+              size: TickFontSize
             },
         color: TextColor  // X-axis tick label color
       }
@@ -703,7 +734,7 @@ jointChart = new Chart(ctx, {
           },
           ticks: {
             font: {
-              size: 18
+              size: TickFontSize
             },
           callback: function(value) {
                     if (value === 0 || value === 0.5 || value === 1) {
@@ -729,7 +760,7 @@ jointChart = new Chart(ctx, {
         color: TextColor,
         display: true,
         font: {
-          size: 18
+          size: TickFontSize
         }
       }
     }
@@ -740,7 +771,8 @@ jointChart = new Chart(ctx, {
         text: 'Joint Measurement Probabilities',
         color: TextColor,
         font: {
-        size: 20 // ← Main chart title font size in pixels
+          size: TitleFontsize, // ← Main chart title font size in pixels
+          weight: 'light'
         }
       },
       legend: { display: false }
@@ -1181,13 +1213,15 @@ const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
   
   scene.add(sphere);
 
-  const label0 = createLabel('0');
-  label0.position.set(0, 0, 1.05);
-  sphere.add(label0);  // Add to the sphere
+  // const label0 = createLabel('0');
+  // label0.position.set(0, 0, 1.05);
+  // sphere.add(label0);  // Add to the sphere
 
-  const label1 = createLabel('1');
-  label1.position.set(0, 0, -1.05);
-  sphere.add(label1);  // Add to the sphere
+  // const label1 = createLabel('1');
+  // label1.position.set(0, 0, -1.05);
+  // sphere.add(label1);  // Add to the sphere
+
+  addPoleLabels(sphere);
 
 // scene.add(label0);
 // scene.add(label1);
