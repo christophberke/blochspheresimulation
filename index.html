@@ -131,7 +131,7 @@ function createLabel(text) {
   const div = document.createElement('div');
   div.className = 'label';
   div.textContent = text;
-  div.style.color = 'red';
+  div.style.color = 'white';
   div.style.fontSize = '18px';
   div.style.fontWeight = 'bold';
   div.style.textShadow = '0 0 5px black';
@@ -145,12 +145,12 @@ function createLabel(text) {
 function addPoleLabels(sphere) {
   // Create north pole label "0"
   const label0 = createLabel('0');
-  label0.position.set(0, 0, 0.8);  // Slightly above the north pole
+  label0.position.set(0, 0, 1.1);  // Slightly above the north pole
   sphere.add(label0);
 
   // Create south pole label "1"
   const label1 = createLabel('1');
-  label1.position.set(0, 0, -1.05); // Slightly below the south pole
+  label1.position.set(0, 0, -1.1); // Slightly below the south pole
   sphere.add(label1);
 }
 
@@ -400,6 +400,15 @@ grid.appendChild(container);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(canvas.clientWidth, canvas.clientWidth);
     renderer.setClearColor(0x000000, 0); // black, fully transparent
+
+    // Begin Label renderer
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(canvas.clientWidth, canvas.clientWidth);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    canvasWrapper.appendChild(labelRenderer.domElement);
+    // End Label renderer
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -684,7 +693,7 @@ const interval = setInterval(() => {
     function animate() {
       controls.update();
       renderer.render(scene, camera);
-      // labelRenderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
       animLoops[i] = requestAnimationFrame(animate);
     }
     animate();
