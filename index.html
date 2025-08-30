@@ -91,6 +91,15 @@
   const TitleFontsize = 24;
 
 
+  // Read bar chart colors from CSS
+  const rootStyles = getComputedStyle(document.documentElement);
+
+  const barColor0 = rootStyles.getPropertyValue('--bar-color-0').trim();
+  const barColor1 = rootStyles.getPropertyValue('--bar-color-1').trim();
+  const barColorJoint = rootStyles.getPropertyValue('--bar-color-joint').trim();
+
+
+
 // TODO: Use this function somewhere.
 /**
  * Resize the Three.js renderer canvas to fit within the available space
@@ -426,7 +435,7 @@ grid.appendChild(container);
         labels: ['0', '1'],
         datasets: [{
           data: [0.5, 0.5],
-          backgroundColor: ['#ff66cc', '#9966ff']
+          backgroundColor: [barColor0, barColor1]
         }]
       },
       options: {
@@ -666,15 +675,22 @@ const interval = setInterval(() => {
         if (step >= steps) {
           clearInterval(interval);
           thetaSlider.value = outcome === 0 ? "0" : Math.PI.toFixed(3);
+
+          // This is for the flash effect.
+          // chart.data.datasets[0].data = [outcome === 0 ? 1 : 0, outcome === 1 ? 1 : 0];
+          // chart.data.datasets[0].backgroundColor = [
+          //   outcome === 0 ? '#ffff66' : barColor0,
+          //   outcome === 1 ? '#ffff66' : barColor1
+          // ];
+
           chart.data.datasets[0].data = [outcome === 0 ? 1 : 0, outcome === 1 ? 1 : 0];
-          chart.data.datasets[0].backgroundColor = [
-            outcome === 0 ? '#ffff66' : '#ff66cc',
-            outcome === 1 ? '#ffff66' : '#9966ff'
-          ];
+          chart.data.datasets[0].backgroundColor = [barColor0, barColor1];  // use variables
+          chart.update();
+
           chart.update();
           updateJointProbabilities(thetaSlidersLocal);
           setTimeout(() => {
-            chart.data.datasets[0].backgroundColor = ['#ff66cc', '#9966ff'];
+            chart.data.datasets[0].backgroundColor = [barColor0, barColor1];
             chart.update();
 
           }, 300);
@@ -714,7 +730,7 @@ jointChart = new Chart(ctx, {
     labels: [],  // Filled later
     datasets: [{
       data: [],
-      backgroundColor: '#66ccff'
+      backgroundColor: barColorJoint
     }]
   },
   options: {

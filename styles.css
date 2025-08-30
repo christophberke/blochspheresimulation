@@ -1,9 +1,9 @@
 
 :root {
 
-  --bar-color-0: #ff66cc;
-  --bar-color-1: #9966ff;
-  --bar-color-joint: #66ccff;
+  --bar-color-0: red;
+  --bar-color-1: green;
+  --bar-color-joint: blue;
 
 
   --primary-bg-color: #202020;    /* Background of entire canvas and qubit container */
