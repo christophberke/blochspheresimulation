@@ -1,24 +1,60 @@
 
 :root {
+
+  --bar-color-0: #ff66cc;
+  --bar-color-1: #9966ff;
+  --bar-color-joint: #66ccff;
+
+
   --primary-bg-color: #202020;    /* Background of entire canvas and qubit container */
   --primary-text-color: #ffffff;  /* Text color (except for buttons) */
   --chart-bg-color: #202020;      /* Background for Bloch sphere plots */
   --entangletext-color: #ff0000;
+
+  /* Some color gradients  */
   --primary-button-gradient: linear-gradient(135deg, #6a11cb, #2575fc);
   --primary-bloch-gradient: linear-gradient(135deg, rgba(102, 255, 255, 0.2), rgba(255, 102, 255, 0.2));
-  --traumzeit-gradient: linear-gradient(
-  135deg,
-  #FFB487 0%,
-  #F8D1A3 40%,
-  #A0D8D0 70%,
-  #609AAD 100%
-  );
-  --fontsize-topbar: 24px;        /* Font size for topbar (no. of qubits, entangle vs. product) */
-  --fontsize-measure: 24px;       /* Fontsize for measurement button */
-  --buttonborder-color: #ffffff;
-  --buttontext-color: #ffffff;
+  --traumzeit-gradient: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%);
+  
+  /*****************************/
+  /***** Button Properties *****/
+  /*****************************/
+  /* Buttons - background */
+  --button-bg: var(--traumzeit-gradient);
+  --measurebutton-bg: var(--entangletext-color);
+
+  /* Buttons - Border radius  */
+  --button-br: 999px;
+  --measurebutton-br: 999px;
+
+  /* Buttons - bordercolor */
+  --button-bc: #00ff00;
+
+  /* Buttons - Hover properties */
+  --buttontext-color: #ff00ff;
   --buttonhover-color: #ffffff;
   --buttonhovertext-color: #202020;
+
+  --fontsize-topbar: 24px;        /* Font size for topbar (no. of qubits, entangle vs. product) */
+  --fontsize-measure: 24px;       /* Fontsize for measurement button */
+
+  /*****************************/
+  /***** Toggle Properties *****/
+  /*****************************/
+  
+  /* Background */
+  --background-toggle-on: linear-gradient(135deg, #6a11cb, #2575fc);;
+  --background-toggle-off: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%); ;
+
+  /* Knob */
+  --sliderknob-color: #00ffff;
+
+  --qubitlabel-color: #00ffff;
+
+
+  --slideraccent-color: red;
+
+
 }
 
 html, body {
@@ -169,7 +205,7 @@ html, body {
 }
 
 .sliderWrapper label {
-  font-size: 18px;
+  font-size: 24px;
   color: var(--primary-text-color);
   display: flex;
 /*  flex-direction: column;*/
@@ -191,8 +227,8 @@ html, body {
   padding: 10px 18px;
   margin: 0 auto; 
   /* Stadium shaped form */
-  border-radius: 9999px;
-  background: var(--traumzeit-gradient);
+  border-radius: var(--measurebutton-br);
+  background: var(--measurebutton-bg);
 }
 
 /* Canvas and Charts */
@@ -210,34 +246,17 @@ html, body {
   object-fit: contain;
 }
 
-/* Button Styling */
-/*button {
-  background: var(--primary-button-gradient);
-  color: white;
-  font-size: var(--fontsize-topbar);
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  margin: 4px;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}*/
-
-
 button {
   background-color: var(--primary-bg-color);  /* Inner fill */
   color: var(--buttontext-color);                                 /* Text color */
-  border: 2px solid var(--buttonborder-color);                    /* White border */
-  border-radius: 0;               /* No rounded corners */
+  border: 2px solid var(--button-bc);                    /* White border */
+  border-radius: var(--button-br);               /* No rounded corners */
   padding: 1px 18px;
   min-width: 60px;
   font-size: var(--fontsize-topbar);
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s;
 }
-
-
 
 button:hover{
   transform: translateY(-2px);
@@ -270,16 +289,18 @@ button:active {
   height: 0;
 }
 
+/* === Slider Track === */
 .slider {
   position: absolute;
   cursor: pointer;
   top: 0; left: 0;
   right: 0; bottom: 0;
-  background: var(--primary-button-gradient);
+  background: var(--traumzeit-gradient);*/
   transition: 0.4s;
   border-radius: 34px;
 }
 
+/* === Slider Knob === */
 .slider:before {
   position: absolute;
   content: "";
@@ -287,7 +308,7 @@ button:active {
   width: 26px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--sliderknob-color);
   transition: 0.4s;
   border-radius: 50%;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
@@ -299,4 +320,17 @@ input:checked + .slider:before {
 
 .switch:hover .slider {
   filter: brightness(1.1);
+}
+
+input:checked + .slider {
+  background: var(--background-toggle-on); /* background when ON */
+}
+
+input:not(:checked) + .slider {
+  background: var(--background-toggle-off); /* background when OFF */
+}
+
+
+input[type="range"] {
+  accent-color: var(--slideraccent-color);  /* Chrome, Edge, Safari, Firefox */
 }
