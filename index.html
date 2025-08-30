@@ -282,7 +282,16 @@ function centerEntangleInfoBox() {
 
 }
 
+function getCssColorVariable(name, fallback = '#ffffff') {
+  const style = getComputedStyle(document.documentElement);
+  const value = style.getPropertyValue(name).trim();
+  return value || fallback;
+}
 
+const arrowColorHex = getCssColorVariable('--arrow-color');
+const arrowColor = new THREE.Color(arrowColorHex);
+
+console.log(arrowColorHex)
 
 
   function setQubitCount(count) {
@@ -421,7 +430,7 @@ grid.appendChild(container);
 
     const arrowDir = new THREE.Vector3(0, 0, 1);
  
-    let arrow = createFancyArrow(arrowDir.clone(), new THREE.Vector3(0, 0, 0), 1, 0xff0000);
+    let arrow = createFancyArrow(arrowDir.clone(), new THREE.Vector3(0, 0, 0), 1, arrowColor);
     scene.add(arrow);
     qubitArrows[i] = arrow;
 
@@ -1120,7 +1129,7 @@ function pointArrowGroup(group, dirVector) {
 
 
 
-function createFancyArrow(dir, origin = new THREE.Vector3(0, 0, 0), length = 1, color = 0xff0000, shaftRadius = 0.02, headLength = 0.25, headRadius = 0.06) {
+function createFancyArrow(dir, origin = new THREE.Vector3(0, 0, 0), length = 1, color = arrowColor, shaftRadius = 0.02, headLength = 0.25, headRadius = 0.06) {
   const arrowGroup = new THREE.Group();
 
   // Normalize the direction vector
@@ -1172,7 +1181,7 @@ function updateQubitArrow(qubitIndex, directionVector) {
     scene.remove(oldArrow);
   }
 
-  const newArrow = createFancyArrow(directionVector.clone(), new THREE.Vector3(0, 0, 0), 1, 0xff0000);
+  const newArrow = createFancyArrow(directionVector.clone(), new THREE.Vector3(0, 0, 0), 1, arrowColor);
   qubitArrows[qubitIndex] = newArrow;
   scene.add(newArrow);
 }
@@ -1185,9 +1194,14 @@ function createBlochSphere(scene) {
   const position = sphereGeometry.attributes.position;
   const colors = [];
 
-const colorSouth = new THREE.Color(0x00ffff);  // Cyan (south pole)
-const colorEquator = new THREE.Color(0xfcf4a3); // Yellow (equator)
-const colorNorth = new THREE.Color(0xff00ff);  // Magenta (north pole)
+// const colorSouth = new THREE.Color(0x00ffff);  // Cyan (south pole)
+// const colorEquator = new THREE.Color(0xfcf4a3); // Yellow (equator)
+// const colorNorth = new THREE.Color(0xff00ff);  // Magenta (north pole)
+
+  const styles = getComputedStyle(document.documentElement);
+  const colorSouth = new THREE.Color(styles.getPropertyValue('--color-south').trim());
+  const colorEquator = new THREE.Color(styles.getPropertyValue('--color-equator').trim());
+  const colorNorth = new THREE.Color(styles.getPropertyValue('--color-north').trim());
 
 for (let j = 0; j < position.count; j++) {
   const z = position.getZ(j);  // z ∈ [-1, 1]

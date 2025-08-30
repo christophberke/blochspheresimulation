@@ -1,9 +1,17 @@
 
 :root {
 
+  /* Colors for probability bars */ 
   --bar-color-0: red;
   --bar-color-1: green;
   --bar-color-joint: blue;
+
+  /* Colors for Bloch sphere plot */
+  --color-south: #ff0099;
+  --color-equator: #fcf4a3;
+  --color-north: #000000;
+  --arrow-color: #ffffff;
+
 
 
   --primary-bg-color: #202020;    /* Background of entire canvas and qubit container */
