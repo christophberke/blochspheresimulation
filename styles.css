@@ -1,23 +1,30 @@
 
 :root {
 
-  /* Colors for probability bars */ 
-  --bar-color-0: #4ca3e5;
-  --bar-color-1: #11335a;
-  --bar-color-joint: #0b294d;
+  --main1: #52658f; /* Used for button border color, slider accent color */
+  --main2: #f7f5e6;; /* Used for button background color */
 
-  /* Colors for Bloch sphere plot */
-  --color-south: #11335a;
-  --color-equator: #11335a;
-  --color-north: #0b294d;
+  --qubit0: #333a56;
+  --qubit1: #C94C4C;
+  --color-equator: #d2fdff; 
   --arrow-color: red;
 
+  --primary-bg-color: var(--main2);    /* Background of entire canvas and qubit container */
+  --primary-text-color: black;    /* Text color (except for buttons) */
+  --chart-bg-color: var(--primary-bg-color);      /* Background for Bloch sphere plots */
+  --entangletext-color: #303c6c;
+
+  /* Colors for probability bars */ 
+  --bar-color-joint: var(--main1);
+  --bar-color-0: var(--qubit0);
+  --bar-color-1: var(--qubit1);
+
+  /* Colors for Bloch sphere plot */
+  --color-north: var(--qubit0);
+  --color-south: var(--qubit1);
 
 
-  --primary-bg-color: #ffffff;    /* Background of entire canvas and qubit container */
-  --primary-text-color: #11335a;  /* Text color (except for buttons) */
-  --chart-bg-color: #ffffff;      /* Background for Bloch sphere plots */
-  --entangletext-color: #11335a;
+
 
   /* Some color gradients  */
   --primary-button-gradient: linear-gradient(135deg, #6a11cb, #2575fc);
@@ -29,20 +36,20 @@
   /***** Button Properties *****/
   /*****************************/
   /* Buttons - background */
-  --button-bg: var(--traumzeit-gradient);
-  --measurebutton-bg: #ffffff;
+/*  --button-bg: var(--traumzeit-gradient);*/
+  --measurebutton-bg: var(--main2);
 
   /* Buttons - Border radius  */
   --button-br: 999px;
   --measurebutton-br: 999px;
 
   /* Buttons - bordercolor */
-  --button-bc: #4ca3e5;
-  --buttontext-color: #4ca3e5;
+  --button-bc: var(--main1);
+  --buttontext-color: var(--main1);
 
   /* Buttons - Hover properties */
-  --buttonhover-color: #11335a;
-  --buttonhovertext-color: var(--primary-bg-color);
+  --buttonhover-color: var(--main1);
+  --buttonhovertext-color: var(--main2);
 
 
   --fontsize-topbar: 24px;        /* Font size for topbar (no. of qubits, entangle vs. product) */
@@ -53,13 +60,13 @@
   /*****************************/
   
   /* Background */
-  --background-toggle-on: linear-gradient(135deg, #6a11cb, #2575fc);;
-  --background-toggle-off: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%); ;
+  --background-toggle-on: linear-gradient(135deg, #f7f5e6, #52658f);
+  --background-toggle-off: linear-gradient(135deg, #52658f, #f7f5e6) ;
 
   /* Knob */
-  --sliderknob-color: #4ca3e5;
-  --qubitlabel-color: #4ca3e5;
-  --slideraccent-color: #4ca3e5;
+  --sliderknob-color: var(--main1);
+  --qubitlabel-color: var(--main1);
+  --slideraccent-color: var(--main1);
 
 
 }
