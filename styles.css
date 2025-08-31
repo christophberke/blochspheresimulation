@@ -2,46 +2,48 @@
 :root {
 
   /* Colors for probability bars */ 
-  --bar-color-0: red;
-  --bar-color-1: green;
-  --bar-color-joint: blue;
+  --bar-color-0: #4ca3e5;
+  --bar-color-1: #11335a;
+  --bar-color-joint: #0b294d;
 
   /* Colors for Bloch sphere plot */
-  --color-south: #ff0099;
-  --color-equator: #fcf4a3;
-  --color-north: #000000;
-  --arrow-color: #ffffff;
+  --color-south: #11335a;
+  --color-equator: #11335a;
+  --color-north: #0b294d;
+  --arrow-color: red;
 
 
 
-  --primary-bg-color: #202020;    /* Background of entire canvas and qubit container */
-  --primary-text-color: #ffffff;  /* Text color (except for buttons) */
-  --chart-bg-color: #202020;      /* Background for Bloch sphere plots */
-  --entangletext-color: #ff0000;
+  --primary-bg-color: #ffffff;    /* Background of entire canvas and qubit container */
+  --primary-text-color: #11335a;  /* Text color (except for buttons) */
+  --chart-bg-color: #ffffff;      /* Background for Bloch sphere plots */
+  --entangletext-color: #11335a;
 
   /* Some color gradients  */
   --primary-button-gradient: linear-gradient(135deg, #6a11cb, #2575fc);
   --primary-bloch-gradient: linear-gradient(135deg, rgba(102, 255, 255, 0.2), rgba(255, 102, 255, 0.2));
   --traumzeit-gradient: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%);
+/*  --traumzeit-gradient: linear-gradient(135deg, #4ca3e5, #11335a);*/
   
   /*****************************/
   /***** Button Properties *****/
   /*****************************/
   /* Buttons - background */
   --button-bg: var(--traumzeit-gradient);
-  --measurebutton-bg: var(--entangletext-color);
+  --measurebutton-bg: #ffffff;
 
   /* Buttons - Border radius  */
   --button-br: 999px;
   --measurebutton-br: 999px;
 
   /* Buttons - bordercolor */
-  --button-bc: #00ff00;
+  --button-bc: #4ca3e5;
+  --buttontext-color: #4ca3e5;
 
   /* Buttons - Hover properties */
-  --buttontext-color: #ff00ff;
-  --buttonhover-color: #ffffff;
-  --buttonhovertext-color: #202020;
+  --buttonhover-color: #11335a;
+  --buttonhovertext-color: var(--primary-bg-color);
+
 
   --fontsize-topbar: 24px;        /* Font size for topbar (no. of qubits, entangle vs. product) */
   --fontsize-measure: 24px;       /* Fontsize for measurement button */
@@ -55,12 +57,9 @@
   --background-toggle-off: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%); ;
 
   /* Knob */
-  --sliderknob-color: #00ffff;
-
-  --qubitlabel-color: #00ffff;
-
-
-  --slideraccent-color: red;
+  --sliderknob-color: #4ca3e5;
+  --qubitlabel-color: #4ca3e5;
+  --slideraccent-color: #4ca3e5;
 
 
 }
@@ -341,4 +340,70 @@ input:not(:checked) + .slider {
 
 input[type="range"] {
   accent-color: var(--slideraccent-color);  /* Chrome, Edge, Safari, Firefox */
+}
+
+
+
+
+/* Positioning container in top-right corner */
+#languageToggleContainer {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  z-index: 1000;
+}
+
+/* Toggle switch base */
+.lang-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+/* Hide default checkbox */
+.lang-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Styled slider */
+.lang-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #666;
+  transition: 0.4s;
+  border-radius: 12px;
+}
+
+/* Slider circle */
+.lang-switch .slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+/* Move toggle when checked */
+.lang-switch input:checked + .slider::before {
+  transform: translateX(26px);
+}
+
+/* Optional label next to switch */
+.lang-label {
+  margin-left: 10px;
+  font-size: 0.9em;
+  font-weight: bold;
+  color: var(--primary-text-color, white);
+  vertical-align: middle;
 }

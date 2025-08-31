@@ -30,7 +30,7 @@
 
   <!-- Qubit count selector -->
   <div id="qubitControls">
-    <span>Number of qubits:</span>
+    <span id="qubitCountLabel">Number of qubits:</span>
     <button onclick="setQubitCount(1)">1</button>
     <button onclick="setQubitCount(2)">2</button>
     <button onclick="setQubitCount(3)">3</button>
@@ -50,6 +50,17 @@
   </div>
 
 </div>
+
+
+<div id="languageToggleContainer">
+  <label class="lang-switch">
+    <input type="checkbox" id="languageToggle">
+    <span class="slider"></span>
+  </label>
+    <span class="lang-label">EN | DE</span>
+</div>
+
+
 
 <!-- Main grid container for qubit columns and joint probability chart -->
 <div id="qubitGrid"></div>
@@ -97,6 +108,48 @@
   const barColor0 = rootStyles.getPropertyValue('--bar-color-0').trim();
   const barColor1 = rootStyles.getPropertyValue('--bar-color-1').trim();
   const barColorJoint = rootStyles.getPropertyValue('--bar-color-joint').trim();
+
+
+  const translations = {
+  en: {
+    numQubits: "Number of qubits",
+    productState: "Product State",
+    entangledState: "Entangled State",
+    measureQubit: (i) => `Measure qubit ${i}`,
+    probability: "Probability",
+    jointTitle: "Joint Measurement Probabilities",
+    entangledInfo: (states, probs) => `
+    <div class="entangleText">
+      The multi-qubit system is now in the <b>maximally entangled</b> state ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are <b>not well defined</b>. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
+    </div>
+    `
+  },
+  de: {
+    numQubits: "Anzahl der Qubits",
+    productState: "Produktzustand",
+    entangledState: "Verschränkter Zustand",
+    measureQubit: (i) => `Qubit ${i} messen`,
+    probability: "Wahrscheinlichkeit",
+    jointTitle: "Gemeinsame Messwahrscheinlichkeiten",
+    entangledInfo: (states, probs) => `
+    <div class="entangleText">
+      Das Multi-Qubit-System befindet sich jetzt im <b>maximal verschränkten</b> Zustand ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Ein solcher Zustand lässt sich nicht durch einzelne Bloch-Kugeln darstellen, da die Zustände der einzelnen Qubits <b>nicht eindeutig</b> bestimmt sind. Nur das Gesamtsystem hat einen wohldefinierten Zustand. Wichtig: Eine Messung eines Qubits beeinflusst alle anderen.
+      </div>
+      `
+  }
+};
+
+let currentLang = "en"; // default language
+
+function updateEntanglementInfoBox() {
+  const infoBox = document.getElementById("entangleInfoBox");
+  if (!infoBox) return;
+
+  const states = Object.keys(entangledStates);
+  const probs = Object.values(entangledStates).map(p => Math.sqrt(p));
+
+  infoBox.innerHTML = translations[currentLang].entangledInfo(states, probs);
+}
 
 
 
@@ -391,7 +444,8 @@ sliderWrapper.appendChild(thetaLabel);
 sliderWrapper.appendChild(phiLabel);
 
 const measureBtn = document.createElement("button");
-measureBtn.textContent = `Measure qubit ${i + 1}`;
+// measureBtn.textContent = `Measure qubit ${i + 1}`;
+measureBtn.textContent = translations[currentLang].measureQubit(i + 1);
 measureBtn.className = "measureBtn";
 
 controlRow.appendChild(sliderWrapper);
@@ -479,7 +533,7 @@ grid.appendChild(container);
         // Add conditional title.
         title: i === 0 ? {
           display: true,
-          text: 'Probability',
+          text: translations[currentLang].probability,
           color: TextColor,
           font: {
             size: LabelFontsize,
@@ -795,7 +849,7 @@ jointChart = new Chart(ctx, {
     plugins: {
       title: {
         display: true,
-        text: 'Joint Measurement Probabilities',
+        text: translations[currentLang].jointTitle,
         color: TextColor,
         font: {
           size: TitleFontsize, // ← Main chart title font size in pixels
@@ -945,11 +999,12 @@ const probs = Object.values(entangledStates).map(p => Math.sqrt(p));
     infoBox.style.display = "block";
   }
 // infoBox.textContent = `entangled State: ${probs[0].toFixed(3)}|${states[0]}⟩ + ${probs[1].toFixed(3)}|${states[1]}⟩`;
-infoBox.innerHTML = `
-  <div class = "entangleText">
-  The multi-qubit system is now in the <b>maximally entangled</b> state ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are <b>not well defined</b>. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
-  </div>
-  `;
+// infoBox.innerHTML = `
+//   <div class = "entangleText">
+//   The multi-qubit system is now in the <b>maximally entangled</b> state ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are <b>not well defined</b>. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
+//   </div>
+//   `;
+infoBox.innerHTML = translations[currentLang].entangledInfo(states, probs);
 
     // Visualize connections
     const canvases = Array.from(document.getElementsByClassName('qubitCanvas'));
@@ -1271,6 +1326,53 @@ const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 
   return sphere;
 }
+
+function updateLanguage() {
+  // Update static label
+  document.getElementById("qubitCountLabel").textContent = translations[currentLang].numQubits + ":";
+
+  // Update entangle toggle labels
+  document.getElementById("entangleLabelLeft").textContent = translations[currentLang].productState;
+  document.getElementById("entangleLabelRight").textContent = translations[currentLang].entangledState;
+
+  // Re-render Bloch spheres and controls with new language
+  // setQubitCount(thetaSliders.length || 1);
+
+  // Optional: also update the "Measure qubit" buttons
+  document.querySelectorAll(".measureBtn").forEach((btn, index) => {
+    btn.textContent = translations[currentLang].measureQubit(index+1);
+  });
+
+  // translations[currentLang].measureQubit(i + 1);
+
+    // Optional: update probability chart titles
+  document.querySelectorAll(".qubitChart").forEach((canvas, i) => {
+    const chart = Chart.getChart(canvas);
+    if (chart && i === 0) {
+      chart.options.scales.y.title.text = translations[currentLang].probability;
+      chart.update();
+    }
+  });
+
+  // Optional: update joint chart title
+  if (jointChart) {
+    jointChart.options.plugins.title.text = translations[currentLang].jointTitle;
+    jointChart.update();
+  }
+
+    // Optional: update entangled info box text if it's visible
+  const infoBox = document.getElementById("entangleInfoBox");
+  if (infoBox && infoBox.style.display !== "none") {
+    updateEntanglementInfoBox(); // Refactor this to support multilingual content
+  }
+
+}
+
+document.getElementById("languageToggle").addEventListener("change", (e) => {
+  currentLang = e.target.checked ? "de" : "en";
+  updateLanguage();
+});
+
 
 
   // Initialize with 1 qubit
