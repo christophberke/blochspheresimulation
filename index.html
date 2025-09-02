@@ -91,6 +91,8 @@
   let jointChart = null;         // Chart.js instance for joint probabilities
   let qubitOrigins = [];         // TODO: Add comment. 
 
+  let qubitRenderers = [];
+
 
   const TextColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
   const QubitLabelColor = getComputedStyle(document.documentElement).getPropertyValue('--qubitlabel-color').trim();
@@ -200,12 +202,12 @@ function createLabel(text) {
 function addPoleLabels(sphere) {
   // Create north pole label "0"
   const label0 = createLabel('0');
-  label0.position.set(0, 0, 1.1);  // Slightly above the north pole
+  label0.position.set(0, 0, 1.);  // Slightly above the north pole
   sphere.add(label0);
 
   // Create south pole label "1"
   const label1 = createLabel('1');
-  label1.position.set(0, 0, -1.1); // Slightly below the south pole
+  label1.position.set(0, 0, -1.); // Slightly below the south pole
   sphere.add(label1);
 }
 
@@ -344,10 +346,8 @@ function getCssColorVariable(name, fallback = '#ffffff') {
 const arrowColorHex = getCssColorVariable('--arrow-color');
 const arrowColor = new THREE.Color(arrowColorHex);
 
-console.log(arrowColorHex)
 
-
-  function setQubitCount(count) {
+function setQubitCount(count) {
 
    // Hide info box if it's visible
   const infoBox = document.getElementById("entangleInfoBox");
@@ -463,17 +463,42 @@ grid.appendChild(container);
     qubitScenes[i] = scene;
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setSize(canvas.clientWidth, canvas.clientWidth);
+    
+
+    // renderer.setSize(canvas.clientWidth, canvas.clientWidth);
+    resizeSceneCanvas(canvas, renderer);
+  
     renderer.setClearColor(0x000000, 0); // black, fully transparent
+
+    qubitRenderers[i] = renderer;
 
     // Begin Label renderer
     const labelRenderer = new CSS2DRenderer();
-    labelRenderer.setSize(canvas.clientWidth, canvas.clientWidth);
-    labelRenderer.domElement.style.position = 'absolute';
-    labelRenderer.domElement.style.top = '0';
-    labelRenderer.domElement.style.pointerEvents = 'none';
-    canvasWrapper.appendChild(labelRenderer.domElement);
-    // End Label renderer
+    
+
+    // labelRenderer.setSize(canvas.clientWidth, canvas.clientWidth);
+    // labelRenderer.domElement.style.position = 'absolute';
+    // labelRenderer.domElement.style.top = '0';
+    // labelRenderer.domElement.style.pointerEvents = 'none';
+    // canvasWrapper.appendChild(labelRenderer.domElement);
+    // // End Label renderer
+
+    labelRenderer.setSize(canvasWrapper.clientWidth, canvasWrapper.clientHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.left = '0';
+labelRenderer.domElement.style.width = '100%';
+labelRenderer.domElement.style.height = '100%';
+labelRenderer.domElement.style.pointerEvents = 'none';
+canvasWrapper.style.position = 'relative'; // Ensure parent is positioned
+canvasWrapper.appendChild(labelRenderer.domElement);
+
+// Responsive resize handler
+window.addEventListener('resize', () => {
+  labelRenderer.setSize(canvasWrapper.clientWidth, canvasWrapper.clientHeight);
+});
+
+
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -1371,6 +1396,17 @@ function updateLanguage() {
 document.getElementById("languageToggle").addEventListener("change", (e) => {
   currentLang = e.target.checked ? "de" : "en";
   updateLanguage();
+});
+
+
+
+window.addEventListener("resize", () => {
+  document.querySelectorAll(".qubitCanvas").forEach((canvas, index) => {
+    const renderer = qubitRenderers[index];
+    if (renderer) {
+      resizeSceneCanvas(canvas, renderer);
+    }
+  });
 });
 
 
