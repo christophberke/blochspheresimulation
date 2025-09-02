@@ -1,18 +1,38 @@
 
 :root {
 
-  --main1: #52658f; /* Used for button border color, slider accent color */
-  --main2: #f7f5e6;; /* Used for button background color */
+  --myblack: #2E2D29;
+  --mypink: #e94892;
+  --mypurple: #4b2c5a;
+  --myyellow: #ffed00;
+  --mygreen: #00993b;
 
-  --qubit0: #333a56;
-  --qubit1: #C94C4C;
+  --main1: var(--myyellow);
+  --main2: var(--myblack);
+
+  --qubit0: var(--mypink);
+  --qubit1: var(--mygreen);
   --color-equator: #d2fdff; 
   --arrow-color: red;
 
+/*========= Bright Color Scheme ==========*/
+
+   /* Used for button border color, slider accent color */
+/*  --main1: #52658f;*/
+  /* Used for button background color */
+/*  --main2: #f7f5e6; */
+
+/*  --qubit0: #333a56;
+  --qubit1: #C94C4C;
+  --color-equator: #d2fdff; 
+  --arrow-color: red;
+*/
+
+
   --primary-bg-color: var(--main2);    /* Background of entire canvas and qubit container */
-  --primary-text-color: black;    /* Text color (except for buttons) */
+  --primary-text-color: white;    /* Text color (except for buttons) */
   --chart-bg-color: var(--primary-bg-color);      /* Background for Bloch sphere plots */
-  --entangletext-color: #303c6c;
+  --entangletext-color: var(--myyellow);
 
   /* Colors for probability bars */ 
   --bar-color-joint: var(--main1);
@@ -23,13 +43,11 @@
   --color-north: var(--qubit0);
   --color-south: var(--qubit1);
 
-
-
-
   /* Some color gradients  */
-  --primary-button-gradient: linear-gradient(135deg, #6a11cb, #2575fc);
-  --primary-bloch-gradient: linear-gradient(135deg, rgba(102, 255, 255, 0.2), rgba(255, 102, 255, 0.2));
-  --traumzeit-gradient: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%);
+/*  --primary-button-gradient: linear-gradient(135deg, #6a11cb, #2575fc);*/
+  --primary-button-gradient: linear-gradient(135deg, var(--mypurple), var(--mypink));
+  --primary-bloch-gradient: linear-gradient(135deg, rgba(76, 44, 91, 0.35), rgba(234, 72, 147, 0.35));
+/*  --traumzeit-gradient: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%);*/
 /*  --traumzeit-gradient: linear-gradient(135deg, #4ca3e5, #11335a);*/
   
   /*****************************/
@@ -60,15 +78,15 @@
   /*****************************/
   
   /* Background */
-  --background-toggle-on: linear-gradient(135deg, #f7f5e6, #52658f);
-  --background-toggle-off: linear-gradient(135deg, #52658f, #f7f5e6) ;
+/*  --background-toggle-on: linear-gradient(135deg, #f7f5e6, #52658f);*/
+/*  --background-toggle-off: linear-gradient(135deg, #52658f, #f7f5e6) ;*/
+  --background-toggle-on: linear-gradient(135deg, var(--mypurple), var(--mypink));
+  --background-toggle-off: linear-gradient(135deg, var(--mypink), var(--mypurple)) ;
 
   /* Knob */
   --sliderknob-color: var(--main1);
   --qubitlabel-color: var(--main1);
   --slideraccent-color: var(--main1);
-
-
 }
 
 html, body {
@@ -413,4 +431,16 @@ input[type="range"] {
   font-weight: bold;
   color: var(--primary-text-color, white);
   vertical-align: middle;
+}
+
+
+.label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: red;
+  text-shadow: 0 0 5px black;
+  pointer-events: none; /* Optional: prevents interference with mouse */
 }
