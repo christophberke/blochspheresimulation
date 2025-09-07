@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Multi-Qubit Bloch Spheres</title>
+
+  <!-- Chart.js for probability bar charts -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <script src="./libs/chart.js"></script>
+
+
+  <!-- Import map to load modern ES modules from CDN for Three.js -->
+<!--   <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.177.0/build/three.module.js",
+        "three/addons/controls/OrbitControls.js": "https://unpkg.com/three@0.177.0/examples/jsm/controls/OrbitControls.js",
+        "three/addons/renderers/CSS2DRenderer.js": "https://unpkg.com/three@0.177.0/examples/jsm/renderers/CSS2DRenderer.js"
+      }
+    }
+  </script> -->
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./libs/three.module.js",
+      "three/addons/controls/OrbitControls.js": "./libs/controls/OrbitControls.js",
+      "three/addons/renderers/CSS2DRenderer.js": "./libs/renderers/CSS2DRenderer.js"
+    }
+  }
+  </script>
+
+
+
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+
+<body>
+
+<!-- Top control bar with qubit count and entanglement toggle -->
+<div id="topControls">
+
+  <!-- Qubit count selector -->
+  <div id="qubitControls">
+    <span id="qubitCountLabel">Number of qubits:</span>
+    <button onclick="setQubitCount(1)">1</button>
+    <button onclick="setQubitCount(2)">2</button>
+    <button onclick="setQubitCount(3)">3</button>
+    <button onclick="setQubitCount(4)">4</button>
+  </div>
+
+  <!-- Entanglement toggle (visible only when count >= 2) -->
+  <div id="entangleContainer" style="display: none; align-items: center; gap: 8px;">
+    <span id="entangleLabelLeft">Product State</span>
+
+    <label id="entangleWrapper" class="switch">
+      <input type="checkbox" id="entangleToggle">
+      <span class="slider"></span>
+    </label>
+
+    <span id="entangleLabelRight">Entangled State</span>
+  </div>
+
+</div>
+
+
+<div id="languageToggleContainer">
+  <label class="lang-switch">
+    <input type="checkbox" id="languageToggle">
+    <span class="slider"></span>
+  </label>
+    <span class="lang-label">EN | DE</span>
+</div>
+
+
+
+<!-- Main grid container for qubit columns and joint probability chart -->
+<div id="qubitGrid"></div>
+
+
+<script type="module">
+
+  // === Import Three.js and its helper modules ===
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+  // import { createLabel, createCamera, createSlider, createBlochSphereLights } from './utils.js';
+
+  // === DOM References ===
+  const grid = document.getElementById("qubitGrid");
+  const entangleToggle = document.getElementById("entangleToggle");
+  const entangleOverlay = document.getElementById("entangleOverlay");
+
+  // === Global State ===
+  let animLoops = [];            // Animation frame handles for cleanup
+  let qubitScenes = [];          // List of Three.js scenes, one per qubit
+  let qubitArrows = [];          // Arrow vectors (Bloch representation)
+  let thetaSliders = [];         // θ sliders (polar angle)
+  let phiSliders = [];           // φ sliders (azimuthal angle)
+  let isEntangled = false;       // Whether the system is currently entangled
+  let entangledStates = {};      // State distribution when entangled, holds alpha, beta, basis states
+  let jointChart = null;         // Chart.js instance for joint probabilities
+  let qubitOrigins = [];         // TODO: Add comment. 
+
+  let qubitRenderers = [];
+
+
+  const TextColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
+  const QubitLabelColor = getComputedStyle(document.documentElement).getPropertyValue('--qubitlabel-color').trim();
+  const BGColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
+
+
+  const TickFontSize = 20;
+  const LabelFontsize = 24;
+  const TitleFontsize = 24;
+
+
+  // Read bar chart colors from CSS
+  const rootStyles = getComputedStyle(document.documentElement);
+
+  const barColor0 = rootStyles.getPropertyValue('--bar-color-0').trim();
+  const barColor1 = rootStyles.getPropertyValue('--bar-color-1').trim();
+  const barColorJoint = rootStyles.getPropertyValue('--bar-color-joint').trim();
+
+
+  const translations = {
+  en: {
+    numQubits: "Number of qubits",
+    productState: "Product State",
+    entangledState: "Entangled State",
+    measureQubit: (i) => `Measure qubit ${i}`,
+    probability: "Probability",
+    jointTitle: "Joint Measurement Probabilities",
+    entangledInfo: (states, probs) => `
+    <div class="entangleText">
+      The multi-qubit system is now in the <b>maximally entangled</b> state ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are <b>not well defined</b>. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
+    </div>
+    `
+  },
+  de: {
+    numQubits: "Anzahl der Qubits",
+    productState: "Produktzustand",
+    entangledState: "Verschränkter Zustand",
+    measureQubit: (i) => `Qubit ${i} messen`,
+    probability: "Wahrscheinlichkeit",
+    jointTitle: "Gemeinsame Messwahrscheinlichkeiten",
+    entangledInfo: (states, probs) => `
+    <div class="entangleText">
+      Das Multi-Qubit-System befindet sich jetzt im <b>maximal verschränkten</b> Zustand ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Ein solcher Zustand lässt sich nicht durch einzelne Bloch-Kugeln darstellen, da die Zustände der einzelnen Qubits <b>nicht eindeutig</b> bestimmt sind. Nur das Gesamtsystem hat einen wohldefinierten Zustand. Wichtig: Eine Messung eines Qubits beeinflusst alle anderen.
+      </div>
+      `
+  }
+};
+
+let currentLang = "en"; // default language
+
+function updateEntanglementInfoBox() {
+  const infoBox = document.getElementById("entangleInfoBox");
+  if (!infoBox) return;
+
+  const states = Object.keys(entangledStates);
+  const probs = Object.values(entangledStates).map(p => Math.sqrt(p));
+
+  infoBox.innerHTML = translations[currentLang].entangledInfo(states, probs);
+}
+
+
+
+// TODO: Use this function somewhere.
+/**
+ * Resize the Three.js renderer canvas to fit within the available space
+ * of its container, considering the space taken up by the chart and control rows.
+ *
+ * @param {HTMLCanvasElement} canvas - The canvas element used by the renderer.
+ * @param {THREE.WebGLRenderer} renderer - The Three.js renderer instance.
+ */
+function resizeSceneCanvas(canvas, renderer) {
+  // The immediate wrapper around the canvas (typically .canvasWrapper)
+  const canvasWrapper = canvas.parentElement;
+
+  // The container that holds the entire qubit section (including canvas, chart, and controls)
+  const qubitContainer = canvasWrapper.parentElement;
+
+  // Get the chart and control row elements inside this qubit container
+  const chartWrapper = qubitContainer.querySelector('.chartWrapper');
+  const controlRow = qubitContainer.querySelector('.controlRow');
+
+  // Compute the available vertical space for the canvas
+  const containerHeight = qubitContainer.clientHeight;
+  const controlHeight = controlRow?.offsetHeight || 0;
+  const chartHeight = chartWrapper?.offsetHeight || 0;
+
+  const remainingHeight = containerHeight - controlHeight - chartHeight;
+
+  // Set the canvas size based on available height and current width
+  const maxSize = Math.min(canvasWrapper.clientWidth, remainingHeight);
+  renderer.setSize(maxSize, maxSize, false);
+}
+
+function createLabel(text) {
+  const div = document.createElement('div');
+  div.className = 'label';
+  div.textContent = text;
+  div.style.color = QubitLabelColor;
+  div.style.fontSize = '18px';
+  div.style.fontWeight = 'bold';
+  div.style.textShadow = '0 0 5px black';
+  div.style.textAlign = 'center';
+
+  return new CSS2DObject(div);
+}
+
+function addPoleLabels(sphere) {
+  // Create north pole label "0"
+  const label0 = createLabel('0');
+  label0.position.set(0, 0, 1.);  // Slightly above the north pole
+  sphere.add(label0);
+
+  // Create south pole label "1"
+  const label1 = createLabel('1');
+  label1.position.set(0, 0, -1.); // Slightly below the south pole
+  sphere.add(label1);
+}
+
+
+/**
+ * Adds ambient, directional, and hemisphere lights to a Three.js scene
+ * to illuminate the Bloch sphere effectively.
+ * @param {THREE.Scene} scene - The scene to which the lights will be added.
+ */
+function createBlochSphereLights(scene) {
+  // Soft overall lighting
+  const ambient = new THREE.AmbientLight(0x404040, 1.4);
+  scene.add(ambient);
+
+  // Strong directional light to create shadows and depth
+  const light = new THREE.DirectionalLight(0xffffff, 2);
+  light.position.set(3, 2, 5);
+  scene.add(light);
+
+  // Adds gradient lighting to enhance spherical shape
+  const hemiLight = new THREE.HemisphereLight(0xffe0f0, 0x202040, 1.2);
+  scene.add(hemiLight);
+}
+
+
+
+/**
+ * Creates a perspective camera.
+ * @returns {THREE.PerspectiveCamera} - A configured Three.js camera.
+ */
+function createCamera() {
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+
+  // Positioned diagonally from above
+  camera.position.set(2.5, -2.5, 0.5);
+
+  // Z-axis points upward for Bloch spheres
+  camera.up.set(0, 0, 1);
+
+  // Center view at origin
+  camera.lookAt(0, 0, 0);
+
+  return camera;
+}
+
+
+/**
+ * Creates an input slider element with the given configuration.
+ * @param {Object} config - Slider configuration parameters.
+ * @param {string|number} config.min - Minimum value.
+ * @param {string|number} config.max - Maximum value.
+ * @param {string|number} config.step - Step size.
+ * @param {string|number} config.value - Initial value.
+ * @returns {HTMLInputElement} - A configured range input element.
+ */
+function createSlider({ min, max, step, value }) {
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.min = min;
+  slider.max = max;
+  slider.step = step;
+  slider.value = value;
+  return slider;
+}
+
+
+/**
+ * Centers and aligns the entanglement info box to match the horizontal span
+ * of the Bloch sphere canvases. Ensures it is positioned above them and spans
+ * from the first to the last Bloch sphere.
+ */
+// function centerEntangleInfoBox() {
+//   const infoBox = document.getElementById("entangleInfoBox");
+//   const wrappers = document.querySelectorAll(".canvasWrapper");
+
+//   if (!infoBox || wrappers.length === 0) return;
+
+//   // Get bounding boxes of the first and last Bloch sphere containers
+//   const firstRect = wrappers[0].getBoundingClientRect();
+//   const lastRect = wrappers[wrappers.length - 1].getBoundingClientRect();
+
+//   // Align the left edge with the first canvas
+//   infoBox.style.left = `${firstRect.left}px`;
+
+//   // Set the width to span from the first to the last canvas
+//   const totalWidth = lastRect.right - firstRect.left;
+//   infoBox.style.width = `${totalWidth}px`;
+
+//   // Align the top edge with the top of the canvases
+//   infoBox.style.top = `${firstRect.top}px`;
+
+//   // Make sure the positioning mode is absolute (in viewport coordinates)
+//   infoBox.style.position = "absolute";
+// }
+
+
+/**
+ * Expands and positions the entanglement info box to fully cover the area
+ * spanned by the Bloch sphere canvases (from first to last, top to bottom).
+ */
+function centerEntangleInfoBox() {
+  const infoBox = document.getElementById("entangleInfoBox");
+  const wrappers = document.querySelectorAll(".canvasWrapper");
+
+  if (!infoBox || wrappers.length === 0) return;
+
+  // Get bounding boxes of the first and last Bloch spheres
+  const firstRect = wrappers[0].getBoundingClientRect();
+  const lastRect = wrappers[wrappers.length - 1].getBoundingClientRect();
+
+  // Compute top-left corner
+  const left = firstRect.left;
+  const top = Math.min(firstRect.top, lastRect.top);
+
+  // Compute full width and height
+  const right = lastRect.right;
+  const bottom = Math.max(firstRect.bottom, lastRect.bottom);
+  const width = right - left;
+  const height = bottom - top;
+
+  // Apply position and size
+  infoBox.style.position = "absolute";
+  infoBox.style.left = `${left}px`;
+  infoBox.style.top = `${top}px`;
+  infoBox.style.width = `${width}px`;
+  infoBox.style.height = `${height}px`;
+
+}
+
+function getCssColorVariable(name, fallback = '#ffffff') {
+  const style = getComputedStyle(document.documentElement);
+  const value = style.getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+const arrowColorHex = getCssColorVariable('--arrow-color');
+const arrowColor = new THREE.Color(arrowColorHex);
+
+
+function setQubitCount(count) {
+
+   // Hide info box if it's visible
+  const infoBox = document.getElementById("entangleInfoBox");
+  if (infoBox) {
+    infoBox.style.display = "none";
+  }
+
+
+// const TextColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
+// const BGColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-text-color').trim();
+
+// const TickFontSize = 20;
+// const LabelFontsize = 24;
+// const TitleFontsize = 24;
+
+
+  qubitArrows = [];
+
+  grid.innerHTML = '';
+  animLoops.forEach(cancelAnimationFrame);
+  animLoops = [];
+
+  thetaSliders = [];
+
+  // Clear entanglement overlay
+  const svg = document.getElementById('entangleOverlay');
+  if (svg) svg.innerHTML = '';
+
+  // document.getElementById("entangleInfoBox").style.display = "none";
+
+
+  const gridWidth = grid.clientWidth || window.innerWidth;
+const maxCanvasWidth = 800;
+const margin = 20;
+const availableWidth = gridWidth - margin * (count + 2);
+
+const numColumns = count + 1; // add 1 for joint probability column
+const qubitWidth = Math.min(maxCanvasWidth, availableWidth / numColumns);
+// const qubitWidth = Math.min(maxCanvasWidth, Math.floor(availableWidth / count));
+
+const thetaSlidersLocal = [];
+
+centerEntangleInfoBox();
+
+
+  for (let i = 0; i < count; i++) {
+    // qubitScenes = [];
+
+// Outer container for one qubit column
+const container = document.createElement("div");
+container.className = "qubitContainer";
+container.style.width = `${qubitWidth}px`;
+
+// --- Bloch Sphere Canvas ---
+const canvasWrapper = document.createElement("div");
+canvasWrapper.className = "canvasWrapper";
+const canvas = document.createElement("canvas");
+canvas.className = "qubitCanvas";
+canvasWrapper.appendChild(canvas);
+container.appendChild(canvasWrapper);  // Add to main container
+
+// --- Single-Qubit Probability Chart ---
+const chartWrapper = document.createElement("div");
+chartWrapper.className = "chartWrapper";
+
+const chartCanvas = document.createElement("canvas");
+chartCanvas.className = "qubitChart";
+chartWrapper.appendChild(chartCanvas);
+container.appendChild(chartWrapper);  // Add to main container
+
+// --- Sliders and Measure Button ---
+const controlRow = document.createElement("div");
+controlRow.className = "controlRow";
+
+const sliderWrapper = document.createElement("div");
+sliderWrapper.className = "sliderWrapper";
+
+// Create sliders and labels
+const thetaSlider = createSlider({ min: "0", max: Math.PI.toFixed(5), step: "0.01", value: (Math.PI / 2).toFixed(3) });
+const phiSlider = createSlider({ min: "0", max: (2 * Math.PI).toFixed(5), step: "0.01", value: Math.PI.toFixed(3) });
+
+thetaSlidersLocal.push(thetaSlider);
+thetaSliders.push(thetaSlider);
+
+const thetaLabel = document.createElement("label");
+thetaLabel.textContent = "θ:";
+thetaLabel.appendChild(thetaSlider);
+
+const phiLabel = document.createElement("label");
+phiLabel.textContent = "φ:";
+phiLabel.appendChild(phiSlider);
+
+sliderWrapper.appendChild(thetaLabel);
+sliderWrapper.appendChild(phiLabel);
+
+const measureBtn = document.createElement("button");
+// measureBtn.textContent = `Measure qubit ${i + 1}`;
+measureBtn.textContent = translations[currentLang].measureQubit(i + 1);
+measureBtn.className = "measureBtn";
+
+controlRow.appendChild(sliderWrapper);
+controlRow.appendChild(measureBtn);
+container.appendChild(controlRow);  // Add to main container
+
+// Finally add the whole qubit column to the grid
+grid.appendChild(container);
+
+
+    const scene = new THREE.Scene();
+    const camera = createCamera()
+
+
+    qubitScenes[i] = scene;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    
+
+    // renderer.setSize(canvas.clientWidth, canvas.clientWidth);
+    resizeSceneCanvas(canvas, renderer);
+  
+    renderer.setClearColor(0x000000, 0); // black, fully transparent
+
+    qubitRenderers[i] = renderer;
+
+    // Begin Label renderer
+    const labelRenderer = new CSS2DRenderer();
+    
+
+    // labelRenderer.setSize(canvas.clientWidth, canvas.clientWidth);
+    // labelRenderer.domElement.style.position = 'absolute';
+    // labelRenderer.domElement.style.top = '0';
+    // labelRenderer.domElement.style.pointerEvents = 'none';
+    // canvasWrapper.appendChild(labelRenderer.domElement);
+    // // End Label renderer
+
+    labelRenderer.setSize(canvasWrapper.clientWidth, canvasWrapper.clientHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.left = '0';
+labelRenderer.domElement.style.width = '100%';
+labelRenderer.domElement.style.height = '100%';
+labelRenderer.domElement.style.pointerEvents = 'none';
+canvasWrapper.style.position = 'relative'; // Ensure parent is positioned
+canvasWrapper.appendChild(labelRenderer.domElement);
+
+// Responsive resize handler
+window.addEventListener('resize', () => {
+  labelRenderer.setSize(canvasWrapper.clientWidth, canvasWrapper.clientHeight);
+});
+
+
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.update();
+
+    createBlochSphere(scene);
+    createBlochSphereLights(scene);
+
+    const arrowDir = new THREE.Vector3(0, 0, 1);
+ 
+    let arrow = createFancyArrow(arrowDir.clone(), new THREE.Vector3(0, 0, 0), 1, arrowColor);
+    scene.add(arrow);
+    qubitArrows[i] = arrow;
+
+    let qubitDir = arrowDir.clone();
+
+    qubitOrigins[i] = new THREE.Vector3(0, 0, 0); // each origin is at (0,0,0) in local space
+
+    const chart = new Chart(chartCanvas.getContext("2d"), {
+      type: 'bar',
+      data: {
+        labels: ['0', '1'],
+        datasets: [{
+          data: [0.5, 0.5],
+          backgroundColor: [barColor0, barColor1]
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        maintainAspectRatio: false,
+        scales: { 
+          y: { 
+            beginAtZero: true, 
+            max: 1,
+            grid: {
+            display: false,
+            drawBorder: true,
+          },
+          border: {
+            display: true,
+            color: TextColor,          // Axis border color
+            width: 1
+          },
+            ticks: {
+            color: TextColor,
+            font: {
+              size: TickFontSize
+            },
+          callback: function(value) {
+                    return [0, 0.5, 1].includes(value) ? value : '';
+                  },
+            stepsize: 0.5,
+            display: true,
+            color: TextColor,
+        },
+        // Add conditional title.
+        title: i === 0 ? {
+          display: true,
+          text: translations[currentLang].probability,
+          color: TextColor,
+          font: {
+            size: LabelFontsize,
+            weight: 'light',
+          }
+        } : undefined
+        // End conditional title
+          },
+          x: {
+            grid: {
+            display: false,
+            drawBorder: true,
+          },
+          border: {
+            display: true,
+            color: TextColor,          // Axis border color
+            width: 1
+          },
+      ticks: {
+        font: {
+              size: TickFontSize
+            },
+        color: TextColor  // X-axis tick label color
+      }
+          }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    function updateArrow() {
+      const theta = parseFloat(thetaSlider.value);
+      const phi = parseFloat(phiSlider.value);
+      const x = Math.sin(theta) * Math.cos(phi);
+      const y = Math.sin(theta) * Math.sin(phi);
+      const z = Math.cos(theta);
+      qubitDir.set(x, y, z).normalize();
+      updateQubitArrow(i, qubitDir);
+     
+
+      const prob0 = Math.pow(Math.cos(theta / 2), 2);
+      chart.data.datasets[0].data = [prob0, 1 - prob0];
+      chart.update();
+    }
+
+    thetaSlider.addEventListener("input", () => {
+  updateArrow();
+  updateJointProbabilities(thetaSlidersLocal);
+});
+    phiSlider.addEventListener("input", updateArrow);
+    updateArrow();
+
+    measureBtn.addEventListener("click", () => {
+
+    //  Add entanglement logic.
+    if (isEntangled) {
+
+    const oldEntangledStates = { ...entangledStates }; // Save current distribution before collapsing
+
+    const allStates = Object.keys(entangledStates);
+    const probs = Object.values(entangledStates);
+    const qubitIndex = i; // index of this qubit
+
+    // Step 1: Compute marginal probability for this qubit
+    let p0 = 0, p1 = 0;
+    for (let j = 0; j < allStates.length; j++) {
+      const bit = allStates[j][qubitIndex];
+      if (bit === '0') p0 += probs[j];
+      else p1 += probs[j];
+    }
+
+    // Step 2: Perform the measurement
+    const rand = Math.random();
+    const outcome = rand < p0 ? '0' : '1';
+
+    // Step 3: Collapse state
+    const newStates = {};
+    let norm = 0;
+    for (const [state, prob] of Object.entries(entangledStates)) {
+      if (state[qubitIndex] === outcome) {
+        newStates[state] = prob;
+        norm += prob;
+      }
+    }
+
+    // Normalize collapsed state
+    for (const key in newStates) {
+      newStates[key] /= norm;
+    }
+
+    entangledStates = newStates;
+    animateJointCollapse(oldEntangledStates, Object.keys(entangledStates)[0]);
+
+    // Disable entanglement (we collapse to a product state)
+    isEntangled = false;
+    entangleToggle.checked = false;
+    entangleOverlay.innerHTML = '';
+    // setSlidersEnabled(true);
+    document.getElementById("entangleInfoBox")?.remove();
+
+    // Set all qubits to reflect the unique collapsed state
+    const collapsedBitstring = Object.keys(entangledStates)[0];
+
+    //  This is the version without smooth update...
+    // for (let q = 0; q < collapsedBitstring.length; q++) {
+    //   const bit = collapsedBitstring[q];
+    //   const theta = bit === '0' ? 0 : Math.PI;
+    //   thetaSliders[q].value = theta.toFixed(3);
+    //   const event = new Event("input");
+    //   thetaSliders[q].dispatchEvent(event);
+    // }
+
+const steps = 30;
+let currentStep = 0;
+
+const currentProbs = []; // From the chart display
+const targetProbs = [];  // From collapsedBitstring
+const collapsedState = collapsedBitstring; // e.g. "101"
+
+document.querySelectorAll(".qubitChart").forEach((canvas, q) => {
+  const chart = Chart.getChart(canvas);
+  const p0 = chart.data.datasets[0].data[0];  // current value shown
+  currentProbs[q] = p0;
+
+  // const measuredBit = collapsedBitstring[q];
+  const measuredBit = collapsedState[q];
+  const targetP0 = measuredBit === '0' ? 1 : 0; // definite state
+  targetProbs[q] = targetP0;
+});
+
+
+const interval = setInterval(() => {
+  currentStep++;
+  const t = currentStep / steps;
+
+  for (let q = 0; q < collapsedBitstring.length; q++) {
+    const interpP0 = currentProbs[q] + t * (targetProbs[q] - currentProbs[q]);
+    const chartCanvas = document.querySelectorAll(".qubitChart")[q];
+    const chart = Chart.getChart(chartCanvas);
+    chart.data.datasets[0].data = [interpP0, 1 - interpP0];
+    chart.update();
+  }
+
+
+  if (currentStep >= steps) {
+    clearInterval(interval);
+
+    // jointChart.data.datasets[0].data = targetJoint;
+    // jointChart.update();  // Final snap to collapsed state
+
+    // Snap arrow & sliders AFTER bar chart is done
+    for (let q = 0; q < collapsedBitstring.length; q++) {
+      const bit = collapsedBitstring[q];
+      const theta = bit === '0' ? 0 : Math.PI;
+      thetaSliders[q].value = theta.toFixed(3);
+
+      const dir = bit === '0' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+      updateQubitArrow(q, dir);
+    }
+    setSlidersEnabled(true);
+
+  }
+}, 16);
+
+
+    return;
+  }
+
+
+  // End of the entanglement section
+
+      const theta = parseFloat(thetaSlider.value);
+      const prob0 = Math.pow(Math.cos(theta / 2), 2);
+      const rand = Math.random();
+      const outcome = rand < prob0 ? 0 : 1;
+
+      const targetDir = outcome === 0
+        ? new THREE.Vector3(0, 0, 1)
+        : new THREE.Vector3(0, 0, -1);
+
+      const currentDir = qubitDir.clone();
+      let step = 0;
+      const steps = 30;
+
+      const interval = setInterval(() => {
+        step++;
+        const t = step / steps;
+        const interpDir = currentDir.clone().lerp(targetDir, t).normalize();
+
+        updateQubitArrow(i, interpDir);
+
+        qubitDir.copy(interpDir);
+
+        const interpTheta = outcome === 0 ? (1-t)*theta : (1-t)*theta + t * Math.PI;
+        thetaSlider.value = interpTheta.toFixed(3);
+
+        const p0 = Math.pow(Math.cos(interpTheta / 2), 2);
+        chart.data.datasets[0].data = [p0, 1 - p0];
+        chart.update();
+        updateJointProbabilities(thetaSlidersLocal);
+
+        if (step >= steps) {
+          clearInterval(interval);
+          thetaSlider.value = outcome === 0 ? "0" : Math.PI.toFixed(3);
+
+          // This is for the flash effect.
+          // chart.data.datasets[0].data = [outcome === 0 ? 1 : 0, outcome === 1 ? 1 : 0];
+          // chart.data.datasets[0].backgroundColor = [
+          //   outcome === 0 ? '#ffff66' : barColor0,
+          //   outcome === 1 ? '#ffff66' : barColor1
+          // ];
+
+          chart.data.datasets[0].data = [outcome === 0 ? 1 : 0, outcome === 1 ? 1 : 0];
+          chart.data.datasets[0].backgroundColor = [barColor0, barColor1];  // use variables
+          chart.update();
+
+          chart.update();
+          updateJointProbabilities(thetaSlidersLocal);
+          setTimeout(() => {
+            chart.data.datasets[0].backgroundColor = [barColor0, barColor1];
+            chart.update();
+
+          }, 300);
+        }
+
+      }, 16);
+    });
+
+    function animate() {
+      controls.update();
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+      animLoops[i] = requestAnimationFrame(animate);
+    }
+    animate();
+  }
+
+// Create joint probability column
+const jointContainer = document.createElement("div");
+jointContainer.className = "qubitContainer";
+jointContainer.style.display = "flex";
+jointContainer.style.flexDirection = "column";
+jointContainer.style.justifyContent = "center";
+jointContainer.style.alignItems = "center";
+
+const jointCanvas = document.createElement("canvas");
+jointCanvas.id = "jointProbChart";
+jointCanvas.style.width = "100%";
+jointCanvas.style.height = "auto";
+jointContainer.appendChild(jointCanvas);
+grid.appendChild(jointContainer);
+
+const ctx = jointCanvas.getContext("2d");
+jointChart = new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: [],  // Filled later
+    datasets: [{
+      data: [],
+      backgroundColor: barColorJoint
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: { beginAtZero: true, 
+          max: 1,
+          grid: {
+            display: false,
+            drawBorder: true,
+          },
+          border: {
+            display: true,
+            color: TextColor,          // Axis border color
+            width: 1
+          },
+          ticks: {
+            font: {
+              size: TickFontSize
+            },
+          callback: function(value) {
+                    if (value === 0 || value === 0.5 || value === 1) {
+                      return value;
+                    }
+                    return ''; // Skip all other labels
+                  },
+            display: true,
+            color: TextColor,
+        }
+        },
+    y: {
+      grid: {
+        display: false,
+        drawBorder: true
+      },
+      border: {
+        display: true,
+        color: TextColor,
+        width: 1
+      },
+      ticks: {
+        color: TextColor,
+        display: true,
+        font: {
+          size: TickFontSize
+        }
+      }
+    }
+      },
+    plugins: {
+      title: {
+        display: true,
+        text: translations[currentLang].jointTitle,
+        color: TextColor,
+        font: {
+          size: TitleFontsize, // ← Main chart title font size in pixels
+          weight: 'light'
+        }
+      },
+      legend: { display: false }
+    }
+  }
+});
+
+
+// document.getElementById("entangleWrapper").style.display = count >= 2 ? "inline-block" : "none";
+document.getElementById("entangleContainer").style.display = count >= 2 ? "flex" : "none";
+
+document.getElementById("entangleToggle").checked = false;
+
+updateJointProbabilities(thetaSlidersLocal);
+
+}
+
+
+function animateJointCollapse(fromStates, toLabel) {
+  const steps = 30;
+  let step = 0;
+  const labels = jointChart.data.labels;
+
+  const start = labels.map(label => fromStates[label] || 0);
+  const end = labels.map(label => label === toLabel ? 1 : 0);
+
+  const interval = setInterval(() => {
+    step++;
+    const t = step / steps;
+
+    const interpolated = labels.map((_, i) =>
+      start[i] + t * (end[i] - start[i])
+    );
+
+    jointChart.data.datasets[0].data = interpolated;
+    jointChart.update();
+
+    if (step >= steps) {
+      clearInterval(interval);
+      jointChart.data.datasets[0].data = end;
+      jointChart.update();
+    }
+  }, 16);
+}
+
+function updateJointProbabilities(thetaSliders) {
+  const n = thetaSliders.length;
+  const probs = [];
+  const labels = [];
+
+  for (let i = 0; i < (1 << n); i++) {
+    const bitstring = i.toString(2).padStart(n, '0');
+    labels.push(bitstring);
+    let p = 1;
+    for (let j = 0; j < n; j++) {
+      const theta = parseFloat(thetaSliders[j].value);
+      const bit = bitstring[j] === '0' ? 0 : 1;
+      const prob = bit === 0
+        ? Math.pow(Math.cos(theta / 2), 2)
+        : Math.pow(Math.sin(theta / 2), 2);
+      p *= prob;
+    }
+    probs.push(p);
+  }
+
+  if (jointChart) {
+    jointChart.data.labels = labels;
+    jointChart.data.datasets[0].data = probs;
+    jointChart.update();
+  }
+}
+
+
+document.getElementById('entangleToggle').addEventListener('change', function () {
+  const svg = document.getElementById('entangleOverlay');
+  svg.innerHTML = `
+    <defs>
+    <filter id="glow" x="-200%" y="-200%" width="1000%" height="1000%">
+  <!-- Strong cyan core glow -->
+  <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur1" />
+  <feColorMatrix in="blur1" type="matrix"
+    values="0 0 0 0 0
+            0 1 1 0 0
+            1 1 1 0 0
+            0 0 0 2 0" result="cyanGlow" />
+
+  <!-- Magenta outer halo -->
+  <feGaussianBlur in="SourceGraphic" stdDeviation="60" result="blur2" />
+  <feColorMatrix in="blur2" type="matrix"
+    values="1 0.3 1 0 0
+            0 0 0 0 0
+            0.8 0 1 0 0
+            0 0 0 2 0" result="magentaHalo" />
+
+  <!-- White intense center glow -->
+  <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur3" />
+  <feColorMatrix in="blur3" type="matrix"
+    values="1 1 1 0 0
+            1 1 1 0 0
+            1 1 1 0 0
+            0 0 0 3 0" result="whiteCore" />
+
+  <!-- Merge all effects together -->
+  <feMerge>
+    <feMergeNode in="magentaHalo"/>
+    <feMergeNode in="cyanGlow"/>
+    <feMergeNode in="whiteCore"/>
+    <feMergeNode in="SourceGraphic"/>
+  </feMerge>
+</filter>
+    </defs>
+  `;
+
+  if (this.checked) {
+    // Entanglement ON
+    isEntangled = true;
+    setSlidersEnabled(false); // Disable sliders
+    generateRandomEntangledState(); // Build random |ψ⟩
+    updateJointProbabilityChartFromEntangledState(); // Show bar chart
+
+    //  To update single qubit probabilities.
+    const singleQubitProbs = getSingleQubitProbsFromEntangled(entangledStates, thetaSliders.length);
+
+    // Update per-qubit bar charts
+    document.querySelectorAll(".qubitChart").forEach((canvas, i) => {
+      const chart = Chart.getChart(canvas);
+      const p0 = singleQubitProbs[i].p0;
+      chart.data.datasets[0].data = [p0, 1 - p0];
+      chart.update();
+    });
+
+
+
+    // Show entangled state info box
+const states = Object.keys(entangledStates);
+const probs = Object.values(entangledStates).map(p => Math.sqrt(p));
+      let infoBox = document.getElementById("entangleInfoBox");
+  if (!infoBox) {
+    infoBox = document.createElement("div");
+    infoBox.id = "entangleInfoBox";
+    document.body.appendChild(infoBox);
+  } else {
+    infoBox.style.display = "block";
+  }
+// infoBox.textContent = `entangled State: ${probs[0].toFixed(3)}|${states[0]}⟩ + ${probs[1].toFixed(3)}|${states[1]}⟩`;
+// infoBox.innerHTML = `
+//   <div class = "entangleText">
+//   The multi-qubit system is now in the <b>maximally entangled</b> state ${probs[0].toFixed(3)} |${states[0]}⟩ + ${probs[1].toFixed(3)} |${states[1]}⟩. Such a state cannot be faithfully represented with Bloch spheres, because states of the individual qubits are <b>not well defined</b>. Only the joint system is in a unique state. Importantly, measuring a single qubit affects all other qubits as well.
+//   </div>
+//   `;
+infoBox.innerHTML = translations[currentLang].entangledInfo(states, probs);
+
+    // Visualize connections
+    const canvases = Array.from(document.getElementsByClassName('qubitCanvas'));
+    if (canvases.length < 2) return;
+
+    for (let i = 0; i < canvases.length - 1; i++) {
+      const rect1 = canvases[i].getBoundingClientRect();
+      const rect2 = canvases[i + 1].getBoundingClientRect();
+
+      const x1 = rect1.left + rect1.width / 2;
+      const y1 = rect1.top + rect1.height / 2;
+      const x2 = rect2.left + rect2.width / 2;
+      const y2 = rect2.top + rect2.height / 2;
+
+      const mx = (x1 + x2) / 2;
+      const my = Math.min(y1, y2) - 40;
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`);
+      path.setAttribute('stroke', '#66ffff');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke-width', '3');
+      path.setAttribute('stroke-opacity', '0.9');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-dasharray', '8,6');
+      path.setAttribute('style', 'animation: dashmove 1s linear infinite;');
+      path.setAttribute('filter', 'url(#glow)');
+      svg.appendChild(path);
+    }
+centerEntangleInfoBox();
+  } else {
+    // Entanglement OFF
+    isEntangled = false;
+    entangledStates = {};
+    setSlidersEnabled(true); // Re-enable sliders
+
+    // Restore single-qubit probability bar charts to match slider values
+thetaSliders.forEach((slider, i) => {
+  const theta = parseFloat(slider.value);
+  const prob0 = Math.pow(Math.cos(theta / 2), 2);
+  const chartCanvas = document.querySelectorAll(".qubitChart")[i];
+  const chart = Chart.getChart(chartCanvas);
+  chart.data.datasets[0].data = [prob0, 1 - prob0];
+  chart.update();
+});
+    
+    updateJointProbabilities(thetaSliders);
+    // document.getElementById("entangleInfoBox").style.display = "none";
+
+
+      const infoBox = document.getElementById("entangleInfoBox");
+    if (infoBox) infoBox.style.display = "none";
+    // updateJointProbabilityChartFromProductState();
+    // updateJointProbabilityChart(); // Reset product-state chart
+  }
+});
+
+
+
+  function createCircle(radius, segments, plane) {
+    const points = [];
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      let x = radius * Math.cos(angle);
+      let y = radius * Math.sin(angle);
+      let z = 0;
+      if (plane === 'xy') points.push(new THREE.Vector3(x, y, z));
+      if (plane === 'xz') points.push(new THREE.Vector3(x, z, y));
+      if (plane === 'yz') points.push(new THREE.Vector3(z, x, y));
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+    return new THREE.LineLoop(geometry, material);
+  }
+
+  function setSlidersEnabled(enabled) {
+  document.querySelectorAll(".sliderWrapper input").forEach(slider => {
+    slider.disabled = !enabled;
+    slider.style.opacity = enabled ? "1" : "0.4";
+  });
+}
+
+function generateRandomEntangledState() {
+  const numQubits = document.querySelectorAll(".qubitCanvas").length;
+  const stateA = randomBitstring(numQubits);
+  const stateB = bitwiseComplement(stateA);
+  // const alpha = Math.random();
+  const alpha = 0.4 + Math.random() * 0.2;
+  const beta = Math.sqrt(1 - alpha * alpha);
+  entangledStates = {
+    [stateA]: alpha * alpha,
+    [stateB]: beta * beta
+  };
+}
+
+function updateJointProbabilityChartFromEntangledState() {
+  if (!jointChart) return;
+
+  const numQubits = document.querySelectorAll(".qubitCanvas").length;
+  const allStates = generateAllBitstrings(numQubits);
+
+  const data = allStates.map(state => entangledStates[state] || 0);
+
+  jointChart.data.labels = allStates;
+  jointChart.data.datasets[0].data = data;
+  jointChart.update();
+}
+
+
+function generateAllBitstrings(n) {
+  const results = [];
+  for (let i = 0; i < Math.pow(2, n); i++) {
+    results.push(i.toString(2).padStart(n, '0'));
+  }
+  return results;
+}
+
+function randomBitstring(n) {
+  return Array.from({ length: n }, () => Math.random() < 0.5 ? "0" : "1").join('');
+}
+
+function bitwiseComplement(s) {
+  return s
+    .split('')
+    .map(bit => bit === '0' ? '1' : '0')
+    .join('');
+}
+
+
+function updateJointProbabilityChartFromProductState() {
+  const thetaSliders = document.querySelectorAll(".sliderWrapper input[type='range']:first-child");
+  const numQubits = thetaSliders.length;
+
+  const allStates = generateAllBitstrings(numQubits);
+  const probs = {};
+
+  allStates.forEach(state => {
+    let prob = 1;
+    for (let i = 0; i < numQubits; i++) {
+      const theta = parseFloat(thetaSliders[i].value);
+      const isOne = state[i] === '1';
+      const p = isOne
+        ? Math.pow(Math.sin(theta / 2), 2)
+        : Math.pow(Math.cos(theta / 2), 2);
+      prob *= p;
+    }
+    probs[state] = prob;
+  });
+
+  jointChart.data.labels = allStates;
+  jointChart.data.datasets[0].data = allStates.map(s => probs[s]);
+  jointChart.update();
+}
+
+
+function getSingleQubitProbsFromEntangled(entangledStates, numQubits) {
+  const probs = Array(numQubits).fill(null).map(() => ({ p0: 0, p1: 0 }));
+
+  for (const [bitstring, prob] of Object.entries(entangledStates)) {
+    for (let i = 0; i < numQubits; i++) {
+      const bit = bitstring[i];
+      if (bit === '0') probs[i].p0 += prob;
+      else probs[i].p1 += prob;
+    }
+  }
+
+  return probs;
+}
+
+// Given direction vector (normalized)
+function pointArrowGroup(group, dirVector) {
+  const axis = new THREE.Vector3(0, 1, 0); // arrow's original axis
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, dirVector.clone().normalize());
+  group.setRotationFromQuaternion(quaternion);
+}
+
+
+
+
+function createFancyArrow(dir, origin = new THREE.Vector3(0, 0, 0), length = 1, color = arrowColor, shaftRadius = 0.02, headLength = 0.25, headRadius = 0.06) {
+  const arrowGroup = new THREE.Group();
+
+  // Normalize the direction vector
+  const direction = dir.clone().normalize();
+
+  // === Shaft ===
+  const shaftLength = length - headLength;
+  const shaftGeometry = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 32);
+  const shaftMaterial = new THREE.MeshStandardMaterial({
+    color: color,
+    roughness: 0.3,
+    metalness: 0.4
+  });
+  const shaft = new THREE.Mesh(shaftGeometry, shaftMaterial);
+
+  shaft.position.y = shaftLength / 2;
+  shaft.castShadow = true;
+  shaft.receiveShadow = true;
+
+  // === Head ===
+  const headGeometry = new THREE.ConeGeometry(headRadius, headLength, 32);
+  const headMaterial = new THREE.MeshStandardMaterial({
+    color: color,
+    metalness: 0.6,
+    roughness: 0.2,
+  });
+  const head = new THREE.Mesh(headGeometry, headMaterial);
+  head.position.y = shaftLength + headLength / 2;
+  head.castShadow = true;
+  head.receiveShadow = true;
+
+  // === Add to group ===
+  arrowGroup.add(shaft);
+  arrowGroup.add(head);
+
+  // === Orient ===
+  arrowGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+  arrowGroup.position.copy(origin);
+
+  return arrowGroup;
+}
+
+
+function updateQubitArrow(qubitIndex, directionVector) {
+  const scene = qubitScenes[qubitIndex];
+  const oldArrow = qubitArrows[qubitIndex];
+
+  if (scene && oldArrow) {
+    scene.remove(oldArrow);
+  }
+
+  const newArrow = createFancyArrow(directionVector.clone(), new THREE.Vector3(0, 0, 0), 1, arrowColor);
+  qubitArrows[qubitIndex] = newArrow;
+  scene.add(newArrow);
+}
+
+
+function createBlochSphere(scene) {
+  // === Sphere ===
+  const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+
+  const position = sphereGeometry.attributes.position;
+  const colors = [];
+
+// const colorSouth = new THREE.Color(0x00ffff);  // Cyan (south pole)
+// const colorEquator = new THREE.Color(0xfcf4a3); // Yellow (equator)
+// const colorNorth = new THREE.Color(0xff00ff);  // Magenta (north pole)
+
+  const styles = getComputedStyle(document.documentElement);
+  const colorSouth = new THREE.Color(styles.getPropertyValue('--color-south').trim());
+  const colorEquator = new THREE.Color(styles.getPropertyValue('--color-equator').trim());
+  const colorNorth = new THREE.Color(styles.getPropertyValue('--color-north').trim());
+
+for (let j = 0; j < position.count; j++) {
+  const z = position.getZ(j);  // z ∈ [-1, 1]
+  let color = new THREE.Color();
+
+  if (z >= 0) {
+    // Interpolate from equator to north pole
+    const t = z;  // 0 at equator, 1 at north pole
+    color.copy(colorEquator).lerp(colorNorth, t);
+  } else {
+    // Interpolate from equator to south pole
+    const t = -z; // 0 at equator, 1 at south pole
+    color.copy(colorEquator).lerp(colorSouth, t);
+  }
+
+  colors.push(color.r, color.g, color.b);
+}
+
+  // const colors = [];
+
+  // for (let j = 0; j < position.count; j++) {
+  //   const z = position.getZ(j);
+  //   const t = (z + 1) / 2;
+  //   const color = new THREE.Color();
+  //   color.setHSL(0.85 - 0.2 * t, 1.0, 0.6 + 0.2 * (1 - t));
+  //   colors.push(color.r, color.g, color.b);
+  // }
+
+  sphereGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+  const sphereMaterial = new THREE.MeshPhongMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.6,
+    shininess: 100
+  });
+
+
+const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+
+  
+  scene.add(sphere);
+
+  // const label0 = createLabel('0');
+  // label0.position.set(0, 0, 1.05);
+  // sphere.add(label0);  // Add to the sphere
+
+  // const label1 = createLabel('1');
+  // label1.position.set(0, 0, -1.05);
+  // sphere.add(label1);  // Add to the sphere
+
+  addPoleLabels(sphere);
+
+// scene.add(label0);
+// scene.add(label1);
+
+  // const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  // scene.add(sphere);
+
+  // === Optional axes (commented out if not needed) ===
+  // scene.add(new THREE.AxesHelper(1.5));
+
+  // === Equator and meridians ===
+  scene.add(createCircle(1.01, 64, 'xy')); // equator
+  scene.add(createCircle(1.01, 64, 'xz')); // vertical
+  scene.add(createCircle(1.01, 64, 'yz')); // vertical
+
+  return sphere;
+}
+
+function updateLanguage() {
+  // Update static label
+  document.getElementById("qubitCountLabel").textContent = translations[currentLang].numQubits + ":";
+
+  // Update entangle toggle labels
+  document.getElementById("entangleLabelLeft").textContent = translations[currentLang].productState;
+  document.getElementById("entangleLabelRight").textContent = translations[currentLang].entangledState;
+
+  // Re-render Bloch spheres and controls with new language
+  // setQubitCount(thetaSliders.length || 1);
+
+  // Optional: also update the "Measure qubit" buttons
+  document.querySelectorAll(".measureBtn").forEach((btn, index) => {
+    btn.textContent = translations[currentLang].measureQubit(index+1);
+  });
+
+  // translations[currentLang].measureQubit(i + 1);
+
+    // Optional: update probability chart titles
+  document.querySelectorAll(".qubitChart").forEach((canvas, i) => {
+    const chart = Chart.getChart(canvas);
+    if (chart && i === 0) {
+      chart.options.scales.y.title.text = translations[currentLang].probability;
+      chart.update();
+    }
+  });
+
+  // Optional: update joint chart title
+  if (jointChart) {
+    jointChart.options.plugins.title.text = translations[currentLang].jointTitle;
+    jointChart.update();
+  }
+
+    // Optional: update entangled info box text if it's visible
+  const infoBox = document.getElementById("entangleInfoBox");
+  if (infoBox && infoBox.style.display !== "none") {
+    updateEntanglementInfoBox(); // Refactor this to support multilingual content
+  }
+
+}
+
+document.getElementById("languageToggle").addEventListener("change", (e) => {
+  currentLang = e.target.checked ? "de" : "en";
+  updateLanguage();
+});
+
+
+
+window.addEventListener("resize", () => {
+  document.querySelectorAll(".qubitCanvas").forEach((canvas, index) => {
+    const renderer = qubitRenderers[index];
+    if (renderer) {
+      resizeSceneCanvas(canvas, renderer);
+    }
+  });
+});
+
+
+
+  // Initialize with 1 qubit
+  setQubitCount(1);
+
+  // Make available to HTML onclick handlers
+  window.setQubitCount = setQubitCount;
+</script>
+<svg id="entangleOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></svg>
+<div id="entangleInfoBox" style="display:none;"></div>
+</body>
+</html>
+

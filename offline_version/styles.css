@@ -1,0 +1,446 @@
+
+:root {
+
+  --myblack: #2E2D29;
+  --mypink: #e94892;
+  --mypurple: #4b2c5a;
+  --myyellow: #ffed00;
+  --mygreen: #00993b;
+
+  --main1: var(--myyellow);
+  --main2: var(--myblack);
+
+  --qubit0: var(--mypink);
+  --qubit1: var(--mygreen);
+  --color-equator: #d2fdff; 
+  --arrow-color: red;
+
+/*========= Bright Color Scheme ==========*/
+
+   /* Used for button border color, slider accent color */
+/*  --main1: #52658f;*/
+  /* Used for button background color */
+/*  --main2: #f7f5e6; */
+
+/*  --qubit0: #333a56;
+  --qubit1: #C94C4C;
+  --color-equator: #d2fdff; 
+  --arrow-color: red;
+*/
+
+
+  --primary-bg-color: var(--main2);    /* Background of entire canvas and qubit container */
+  --primary-text-color: white;    /* Text color (except for buttons) */
+  --chart-bg-color: var(--primary-bg-color);      /* Background for Bloch sphere plots */
+  --entangletext-color: var(--myyellow);
+
+  /* Colors for probability bars */ 
+  --bar-color-joint: var(--main1);
+  --bar-color-0: var(--qubit0);
+  --bar-color-1: var(--qubit1);
+
+  /* Colors for Bloch sphere plot */
+  --color-north: var(--qubit0);
+  --color-south: var(--qubit1);
+
+  /* Some color gradients  */
+/*  --primary-button-gradient: linear-gradient(135deg, #6a11cb, #2575fc);*/
+  --primary-button-gradient: linear-gradient(135deg, var(--mypurple), var(--mypink));
+  --primary-bloch-gradient: linear-gradient(135deg, rgba(76, 44, 91, 0.35), rgba(234, 72, 147, 0.35));
+/*  --traumzeit-gradient: linear-gradient(135deg, #FFB487 0%, #F8D1A3 40%, #A0D8D0 70%, #609AAD 100%);*/
+/*  --traumzeit-gradient: linear-gradient(135deg, #4ca3e5, #11335a);*/
+  
+  /*****************************/
+  /***** Button Properties *****/
+  /*****************************/
+  /* Buttons - background */
+/*  --button-bg: var(--traumzeit-gradient);*/
+  --measurebutton-bg: var(--main2);
+
+  /* Buttons - Border radius  */
+  --button-br: 999px;
+  --measurebutton-br: 999px;
+
+  /* Buttons - bordercolor */
+  --button-bc: var(--main1);
+  --buttontext-color: var(--main1);
+
+  /* Buttons - Hover properties */
+  --buttonhover-color: var(--main1);
+  --buttonhovertext-color: var(--main2);
+
+
+  --fontsize-topbar: 24px;        /* Font size for topbar (no. of qubits, entangle vs. product) */
+  --fontsize-measure: 24px;       /* Fontsize for measurement button */
+
+  /*****************************/
+  /***** Toggle Properties *****/
+  /*****************************/
+  
+  /* Background */
+/*  --background-toggle-on: linear-gradient(135deg, #f7f5e6, #52658f);*/
+/*  --background-toggle-off: linear-gradient(135deg, #52658f, #f7f5e6) ;*/
+  --background-toggle-on: linear-gradient(135deg, var(--mypurple), var(--mypink));
+  --background-toggle-off: linear-gradient(135deg, var(--mypink), var(--mypurple)) ;
+
+  /* Knob */
+  --sliderknob-color: var(--main1);
+  --qubitlabel-color: var(--main1);
+  --slideraccent-color: var(--main1);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--primary-bg-color);
+  color: var(--primary-text-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 300;
+}
+
+#topControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+#qubitControls {
+  padding: 8px 12px;
+  flex-shrink: 0;
+  font-size: var(--fontsize-topbar);
+}
+
+#qubitControls span {
+  margin-right: 20px; /* Adjust as needed */
+}
+
+/* Wrapper for toggle between product state / entangled state */
+#entangleContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 20px;
+  font-size: var(--fontsize-topbar);
+  color: var(--primary-text-color);
+}
+
+
+#entangleInfoBox {
+  position: absolute;
+  color: var(--entangletext-color);
+  background: var(--primary-bloch-gradient);
+  text-align: center;
+  padding: 0;
+  font-size: 18px;
+  z-index: 15;
+  pointer-events: none;
+  transition: left 0.2s, width 0.2s, top 0.2s, height 0.2s;
+
+  /* Center text horizontally & vertically */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* Make sure it fills the Bloch sphere region */
+  height: 100%;
+  width: 100%;
+  border: 2px white;                                                                
+
+/*  padding: 20px;*/
+  /* Optional styling for rounded appearance */
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(102, 255, 255, 0.5);
+}
+
+.entangleText {
+  display: inline-block;
+  white-space: pre-line;
+  max-width: 60%;
+  line-height: 1.5;
+  text-align: left;
+}
+
+
+#qubitGrid {
+  flex-grow: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#jointProbChart {
+  width: 100%;
+  height: 100%;
+}
+
+/* Qubit Column Layout */
+.qubitContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background: var(--primary-bg-color);
+  border-radius: 8px;
+  gap: 12px;
+  padding: 8px;
+  height: 100%;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Bloch Sphere Container */
+.canvasWrapper {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Probability Chart */
+.chartWrapper {
+  width: 100%;
+  min-height: 200px;
+  flex-grow: 1;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Control Section */
+.controlRow {
+  width: 100%;
+  min-height: 100px;
+  max-height: 180px;
+  height: min(20vh, 180px);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sliderWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sliderWrapper label {
+  font-size: 24px;
+  color: var(--primary-text-color);
+  display: flex;
+/*  flex-direction: column;*/
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.sliderWrapper input {
+  width: 100%;
+  height: 24px;
+}
+
+.measureBtn {
+/*  height: 40px;*/
+  font-size: var(--fontsize-measure);
+  width: 100%;
+  max-width: 320px;
+  padding: 10px 18px;
+  margin: 0 auto; 
+  /* Stadium shaped form */
+  border-radius: var(--measurebutton-br);
+  background: var(--measurebutton-bg);
+}
+
+/* Canvas and Charts */
+.qubitCanvas {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+  background-color: var(--chart-bg-color);
+}
+
+.qubitChart {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+button {
+  background-color: var(--primary-bg-color);  /* Inner fill */
+  color: var(--buttontext-color);                                 /* Text color */
+  border: 2px solid var(--button-bc);                    /* White border */
+  border-radius: var(--button-br);               /* No rounded corners */
+  padding: 1px 18px;
+  min-width: 60px;
+  font-size: var(--fontsize-topbar);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s;
+}
+
+button:hover{
+  transform: translateY(-2px);
+  background-color: var(--buttonhover-color);        /* Invert on hover */
+  color: var(--buttonhovertext-color);
+}
+
+button:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  outline: none;
+}
+
+button:active {
+  transform: scale(0.97);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 32px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* === Slider Track === */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0;
+  right: 0; bottom: 0;
+  background: var(--traumzeit-gradient);*/
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+/* === Slider Knob === */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--sliderknob-color);
+  transition: 0.4s;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+input:checked + .slider:before {
+  transform: translateX(28px);
+}
+
+.switch:hover .slider {
+  filter: brightness(1.1);
+}
+
+input:checked + .slider {
+  background: var(--background-toggle-on); /* background when ON */
+}
+
+input:not(:checked) + .slider {
+  background: var(--background-toggle-off); /* background when OFF */
+}
+
+
+input[type="range"] {
+  accent-color: var(--slideraccent-color);  /* Chrome, Edge, Safari, Firefox */
+}
+
+
+
+
+/* Positioning container in top-right corner */
+#languageToggleContainer {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  z-index: 1000;
+}
+
+/* Toggle switch base */
+.lang-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+/* Hide default checkbox */
+.lang-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Styled slider */
+.lang-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #666;
+  transition: 0.4s;
+  border-radius: 12px;
+}
+
+/* Slider circle */
+.lang-switch .slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+/* Move toggle when checked */
+.lang-switch input:checked + .slider::before {
+  transform: translateX(26px);
+}
+
+/* Optional label next to switch */
+.lang-label {
+  margin-left: 10px;
+  font-size: 0.9em;
+  font-weight: bold;
+  color: var(--primary-text-color, white);
+  vertical-align: middle;
+}
+
+
+.label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: red;
+  text-shadow: 0 0 5px black;
+  pointer-events: none; /* Optional: prevents interference with mouse */
+}
